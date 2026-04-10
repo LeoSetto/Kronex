@@ -310,8 +310,42 @@ return(<div className="m-only" style={{position:"fixed",bottom:24,right:20,zInde
 </button></div>);
 }
 
+// ─── OBJECTIVES CARD ───
+function ObjectivesCard({season,setSeason,toast}){
+const[adding,setAdding]=useState(false);
+const[newObj,setNewObj]=useState("");
+if(!season)return null;
+const objs=season.objectives||[];
+const toggle=(id)=>{setSeason(s=>({...s,objectives:(s.objectives||[]).map(o=>o.id===id?{...o,done:!o.done}:o)}));};
+const addObj=()=>{if(!newObj.trim())return;setSeason(s=>({...s,objectives:[...(s.objectives||[]),{id:genId(),text:newObj.trim(),done:false}]}));setNewObj("");setAdding(false);toast("Objetivo adicionado");};
+const remObj=(id)=>{setSeason(s=>({...s,objectives:(s.objectives||[]).filter(o=>o.id!==id)}));};
+const doneCount=objs.filter(o=>o.done).length;
+return(<div className="card">
+<div className="ct">🎯 Objetivos da Temporada {objs.length>0&&<span style={{marginLeft:"auto",fontSize:12,color:doneCount===objs.length&&objs.length>0?"var(--green)":"var(--text3)"}}>{doneCount}/{objs.length}</span>}</div>
+{objs.length>0&&<div style={{marginBottom:12}}>
+<div style={{height:6,background:"var(--bg4)",borderRadius:3,overflow:"hidden",marginBottom:10}}>
+<div style={{height:"100%",width:`${objs.length>0?(doneCount/objs.length)*100:0}%`,background:"linear-gradient(90deg,var(--accent),var(--green))",borderRadius:3,transition:"width .4s"}}/>
+</div>
+{objs.map(o=>(
+<div key={o.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>toggle(o.id)}>
+<div style={{width:22,height:22,borderRadius:6,border:o.done?"none":"2px solid var(--border2)",background:o.done?"var(--green)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .2s"}}>
+{o.done&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+</div>
+<span style={{flex:1,fontSize:13,color:o.done?"var(--text3)":"var(--text)",textDecoration:o.done?"line-through":"none",transition:"all .2s",minWidth:0,overflow:"hidden",textOverflow:"ellipsis"}}>{o.text}</span>
+<button onClick={e=>{e.stopPropagation();remObj(o.id);}} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",padding:2,fontSize:14}}>×</button>
+</div>))}
+</div>}
+{adding?<div style={{display:"flex",gap:8}}>
+<input value={newObj} onChange={e=>setNewObj(e.target.value)} placeholder="Ex: Ganhar a liga" autoFocus onKeyDown={e=>{if(e.key==="Enter")addObj();if(e.key==="Escape")setAdding(false);}} style={{flex:1}}/>
+<button className="btn bp bs" onClick={addObj}>Adicionar</button>
+<button className="btn bg bs" onClick={()=>setAdding(false)}>×</button>
+</div>:
+<button className="btn bg bs" onClick={()=>setAdding(true)}>{I.plus} Novo Objetivo</button>}
+</div>);
+}
+
 // ─── DASHBOARD ───
-function Dashboard({save:sv,season:sn,goTo,allSeasons}){
+function Dashboard({save:sv,season:sn,goTo,allSeasons,setSeason,toast}){
 if(!sv) return <EmptyState icon="🏟️" title="Nenhum save ativo" sub="Crie seu primeiro save nas configurações" action={<button className="btn bp" onClick={()=>goTo("settings")}>{I.plus} Criar Save</button>}/>;
 if(!sn) return <EmptyState icon="📅" title="Nenhuma temporada" sub="Crie sua primeira temporada" action={<button className="btn bp" onClick={()=>goTo("settings")}>{I.plus} Nova Temporada</button>}/>;
 
@@ -368,45 +402,139 @@ return(<div>
 <div className="ct">🏆 Títulos da Temporada</div>
 <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{sn.trophies.map((t,i)=><span key={i} className="tg tg-ac" style={{fontSize:13,padding:"6px 14px"}}>🏆 {t.name}</span>)}</div>
 </div>}
+
+{/* Objectives */}
+<ObjectivesCard season={sn} setSeason={setSeason} toast={toast}/>
 </div>);
 }
 
 // ─── MATCHES PAGE ───
 function MatchesPage({season,setSeason,toast,config}){
 const[modal,setModal]=useState(false);
-const[form,setForm]=useState({opponent:"",goalsFor:"",goalsAgainst:"",competition:config.competitions[0],date:today(),motm:"",notes:"",scorers:"",isHome:true});
+const[form,setForm]=useState({opponent:"",goalsFor:0,goalsAgainst:"",competition:config.competitions[0],date:today(),motm:"",notes:"",isHome:true});
+const[scorers,setScorers]=useState([]); // [{playerId,playerName,goals:1}]
+const[assists,setAssists]=useState([]); // [{playerId,playerName,assists:1}]
+const[matchRating,setMatchRating]=useState({}); // {playerId: rating}
 const[filter,setFilter]=useState("Todos");
-const[search,setSearch]=useState("");
 
 if(!season) return <EmptyState icon="⚽" title="Sem temporada ativa" sub="Crie uma temporada primeiro"/>;
 
+// Quick add scorer
+const addScorer=(p)=>{
+const existing=scorers.find(s=>s.playerId===p.id);
+if(existing){setScorers(scorers.map(s=>s.playerId===p.id?{...s,goals:s.goals+1}:s));}
+else{setScorers([...scorers,{playerId:p.id,playerName:p.name,goals:1}]);}
+setForm(f=>({...f,goalsFor:(Number(f.goalsFor)||0)+1}));
+};
+const removeScorer=(pid)=>{
+const s=scorers.find(x=>x.playerId===pid);
+if(!s)return;
+if(s.goals>1){setScorers(scorers.map(x=>x.playerId===pid?{...x,goals:x.goals-1}:x));}
+else{setScorers(scorers.filter(x=>x.playerId!==pid));}
+setForm(f=>({...f,goalsFor:Math.max(0,(Number(f.goalsFor)||0)-1)}));
+};
+
+// Quick add assist
+const addAssist=(p)=>{
+const existing=assists.find(a=>a.playerId===p.id);
+if(existing){setAssists(assists.map(a=>a.playerId===p.id?{...a,assists:a.assists+1}:a));}
+else{setAssists([...assists,{playerId:p.id,playerName:p.name,assists:1}]);}
+};
+const removeAssist=(pid)=>{
+const a=assists.find(x=>x.playerId===pid);
+if(!a)return;
+if(a.assists>1){setAssists(assists.map(x=>x.playerId===pid?{...x,assists:x.assists-1}:x));}
+else{setAssists(assists.filter(x=>x.playerId!==pid));}
+};
+
+const totalScorerGoals=scorers.reduce((a,s)=>a+s.goals,0);
+
+const resetForm=()=>{
+setForm({opponent:"",goalsFor:0,goalsAgainst:"",competition:config.competitions[0],date:today(),motm:"",notes:"",isHome:true});
+setScorers([]);setAssists([]);setMatchRating({});
+};
+
 const add=()=>{
 if(!form.opponent)return;
-const match={id:genId(),opponent:form.opponent,goalsFor:Number(form.goalsFor)||0,goalsAgainst:Number(form.goalsAgainst)||0,competition:form.competition,date:form.date,motm:form.motm,notes:form.notes,scorers:form.scorers,isHome:form.isHome};
-if(modal==="edit"){setSeason(s=>({...s,matches:s.matches.map(m=>m.id===form.id?{...match,id:form.id}:m)}));toast("Jogo atualizado");}
-else{
-// Update MOTM count
-if(form.motm){setSeason(s=>{const newMatches=[...s.matches,match];const newPlayers=s.players.map(p=>p.name===form.motm?{...p,motm:(p.motm||0)+1,matchesPlayed:(p.matchesPlayed||0)+1}:p);return{...s,matches:newMatches,players:newPlayers};});
-}else{setSeason(s=>({...s,matches:[...s.matches,match]}));}
-toast("Jogo registrado!");}
-setModal(false);};
+const gf=Number(form.goalsFor)||0;
+const ga=Number(form.goalsAgainst)||0;
+const match={id:genId(),opponent:form.opponent,goalsFor:gf,goalsAgainst:ga,competition:form.competition,date:form.date,motm:form.motm,notes:form.notes,isHome:form.isHome,scorers:scorers,assists:assists};
 
-const editM=(m)=>{setForm({...m});setModal("edit");};
+if(modal==="edit"){
+setSeason(s=>({...s,matches:s.matches.map(m=>m.id===form.id?{...match,id:form.id}:m)}));
+toast("Jogo atualizado");
+}else{
+// Auto-update player stats
+setSeason(s=>{
+const newPlayers=s.players.map(p=>{
+let updated={...p};
+// Goals
+const sc=scorers.find(x=>x.playerId===p.id);
+if(sc) updated.goals=(updated.goals||0)+sc.goals;
+// Assists
+const as2=assists.find(x=>x.playerId===p.id);
+if(as2) updated.assists=(updated.assists||0)+as2.assists;
+// MOTM
+if(form.motm===p.name) updated.motm=(updated.motm||0)+1;
+// Matches played (all players in scorers or assists, or motm, count as played)
+if(sc||as2||form.motm===p.name) updated.matchesPlayed=(updated.matchesPlayed||0)+1;
+// Individual rating
+const rt=matchRating[p.id];
+if(rt){
+const prev=updated.avgRating||0;const prevM=updated.matchesPlayed||1;
+updated.avgRating=prevM>1?((prev*(prevM-1))+Number(rt))/prevM:Number(rt);
+}
+return updated;
+});
+return{...s,matches:[...s.matches,match],players:newPlayers};
+});
+toast("⚽ Jogo registrado!");
+}
+setModal(false);resetForm();};
+
+const editM=(m)=>{
+setForm({...m,goalsFor:m.goalsFor||0});
+setScorers(m.scorers||[]);setAssists(m.assists||[]);
+setModal("edit");};
 const rem=(id)=>{setSeason(s=>({...s,matches:s.matches.filter(m=>m.id!==id)}));toast("Jogo removido");};
 
 const ms=matchStats(season.matches);
 const comps=[...new Set(season.matches.map(m=>m.competition))];
 const filtered=season.matches.filter(m=>{
 if(filter!=="Todos"&&m.competition!==filter)return false;
-if(search&&!m.opponent.toLowerCase().includes(search.toLowerCase()))return false;
 return true;
 }).reverse();
+
+// Player picker component
+const PlayerPicker=({label,items,onAdd,onRemove,field})=>(
+<div style={{marginBottom:12}}>
+<div className="fl" style={{marginBottom:6}}>{label}</div>
+{/* Selected */}
+{items.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+{items.map(item=>(
+<div key={item.playerId} style={{display:"flex",alignItems:"center",gap:4,background:"var(--accent-glow)",border:"1px solid var(--accent)",borderRadius:20,padding:"4px 10px",fontSize:12,color:"var(--accent)",fontWeight:600}}>
+{item.playerName} {item[field]>1&&<span style={{fontWeight:800}}>×{item[field]}</span>}
+<button onClick={()=>onRemove(item.playerId)} style={{background:"none",border:"none",color:"var(--accent)",cursor:"pointer",padding:0,marginLeft:2,fontSize:14,lineHeight:1}}>−</button>
+</div>))}
+</div>}
+{/* Quick buttons */}
+<div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+{season.players.slice(0,20).map(p=>{
+const count=items.find(x=>x.playerId===p.id)?.[field]||0;
+return(
+<button key={p.id} onClick={()=>onAdd(p)} type="button"
+style={{padding:"5px 10px",borderRadius:8,fontSize:11,fontWeight:count>0?700:500,border:count>0?"1px solid var(--accent)":"1px solid var(--border)",background:count>0?"var(--accent-glow)":"var(--bg3)",color:count>0?"var(--accent)":"var(--text2)",cursor:"pointer",transition:"all .15s",fontFamily:"'DM Sans',sans-serif"}}>
+{p.name.split(" ").pop()} {count>0&&<span style={{fontWeight:800}}>({count})</span>}
+</button>);
+})}
+</div>
+</div>);
 
 return(<div>
 <div className="ph"><div className="pt">⚽ Partidas</div><div className="ps">{ms.total} jogos · {ms.w}V {ms.d}E {ms.l}D · {ms.gf} gols marcados</div></div>
 
 <div className="tb">
-<button className="btn bp" onClick={()=>{setForm({opponent:"",goalsFor:"",goalsAgainst:"",competition:config.competitions[0],date:today(),motm:"",notes:"",scorers:"",isHome:true});setModal(true);}}>{I.plus} Novo Jogo</button>
+<button className="btn bp" onClick={()=>{resetForm();setModal(true);}}>{I.plus} Novo Jogo</button>
 <div className="filter-scroll">
 <button className={`btn ${filter==="Todos"?"bp":"bg"} bs`} onClick={()=>setFilter("Todos")}>Todos</button>
 {comps.map(c=><button key={c} className={`btn ${filter===c?"bp":"bg"} bs`} onClick={()=>setFilter(c)}>{c}</button>)}
@@ -431,12 +559,13 @@ return(<div>
 <div key={m.id} className="m-card">
 <div className="m-card-h"><span className={`tg ${rb.cls}`}>{rb.label}</span><span className="m-card-n" style={{marginLeft:6}}>{m.isHome?"🏠 ":"✈️ "}{m.opponent}</span><span style={{fontWeight:700,fontFamily:"'Outfit',sans-serif",fontSize:16}}>{m.goalsFor}-{m.goalsAgainst}</span></div>
 <div className="m-card-r"><span className="tg tg-n">{m.competition}</span><span>{m.date}</span>{m.motm&&<span>⭐ {m.motm}</span>}</div>
+{(m.scorers||[]).length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:4}}>{m.scorers.map((s,i)=><span key={i} style={{fontSize:10,color:"var(--green)"}}>⚽ {s.playerName}{s.goals>1?` ×${s.goals}`:""}</span>)}</div>}
 <div className="m-card-a"><button className="bi" onClick={()=>editM(m)}>{I.edit}</button><ConfirmDelete onConfirm={()=>rem(m.id)}/></div>
 </div>);})}
 </div>
 </>}
 
-{modal&&<Modal title={modal==="edit"?"Editar Jogo":"Novo Jogo"} onClose={()=>setModal(false)}>
+{modal&&<Modal title={modal==="edit"?"Editar Jogo":"Novo Jogo"} onClose={()=>{setModal(false);resetForm();}}>
 <div className="fr">
 <div className="fg" style={{flex:2}}><label className="fl">Adversário</label><input value={form.opponent||""} onChange={e=>setForm({...form,opponent:e.target.value})} autoFocus placeholder="Ex: Real Madrid"/></div>
 <div className="fg" style={{maxWidth:80}}><label className="fl">Local</label>
@@ -444,19 +573,33 @@ return(<div>
 </div>
 </div>
 <div className="fr">
-<div className="fg"><label className="fl">Gols Pró</label><input type="number" min="0" value={form.goalsFor} onChange={e=>setForm({...form,goalsFor:e.target.value})} placeholder="0"/></div>
-<div className="fg"><label className="fl">Gols Contra</label><input type="number" min="0" value={form.goalsAgainst} onChange={e=>setForm({...form,goalsAgainst:e.target.value})} placeholder="0"/></div>
-</div>
-<div className="fr">
 <div className="fg"><label className="fl">Competição</label><select value={form.competition} onChange={e=>setForm({...form,competition:e.target.value})}>{config.competitions.map(c=><option key={c}>{c}</option>)}</select></div>
 <div className="fg"><label className="fl">Data</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
 </div>
+
+{/* SCORERS PICKER */}
+{season.players.length>0?<>
+<div style={{borderTop:"1px solid var(--border)",margin:"8px 0",paddingTop:10}}>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+<span className="fl">⚽ Gols Marcados</span>
+<span style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--accent)"}}>{totalScorerGoals}</span>
+</div>
+</div>
+<PlayerPicker label="Toque no jogador que marcou" items={scorers} onAdd={addScorer} onRemove={removeScorer} field="goals"/>
+
+<PlayerPicker label="🅰️ Assistências" items={assists} onAdd={addAssist} onRemove={removeAssist} field="assists"/>
+</>:
 <div className="fr">
+<div className="fg"><label className="fl">Gols Pró</label><input type="number" min="0" value={form.goalsFor} onChange={e=>setForm({...form,goalsFor:e.target.value})} placeholder="0"/></div>
+</div>}
+
+<div className="fr">
+<div className="fg"><label className="fl">Gols Contra</label><input type="number" min="0" value={form.goalsAgainst} onChange={e=>setForm({...form,goalsAgainst:e.target.value})} placeholder="0"/></div>
 <div className="fg"><label className="fl">Man of the Match</label><select value={form.motm||""} onChange={e=>setForm({...form,motm:e.target.value})}><option value="">—</option>{season.players.map(p=><option key={p.id} value={p.name}>{p.name}</option>)}</select></div>
 </div>
-<div className="fr"><div className="fg"><label className="fl">Goleadores (separar por vírgula)</label><input value={form.scorers||""} onChange={e=>setForm({...form,scorers:e.target.value})} placeholder="Ex: Haaland x2, De Bruyne"/></div></div>
+
 <div className="fr"><div className="fg"><label className="fl">Observações</label><textarea value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Notas sobre o jogo..." rows={2}/></div></div>
-<div className="ma"><button className="btn bg" onClick={()=>setModal(false)}>Cancelar</button><button className="btn bp" onClick={add}>{modal==="edit"?"Salvar":"Registrar"}</button></div>
+<div className="ma"><button className="btn bg" onClick={()=>{setModal(false);resetForm();}}>Cancelar</button><button className="btn bp" onClick={add}>{modal==="edit"?"Salvar":"Registrar ⚽"}</button></div>
 </Modal>}
 </div>);
 }
@@ -959,12 +1102,13 @@ function SettingsPage({data,setData,toast,goTo}){
 const[saveModal,setSaveModal]=useState(false);
 const[seasonModal,setSeasonModal]=useState(false);
 const[saveForm,setSaveForm]=useState({name:"Nova Carreira",gameVersion:GAME_VERSIONS[0],difficulty:DIFFICULTIES[3],managerName:"",managerNationality:""});
-const[seasonForm,setSeasonForm]=useState({teamName:"",teamBadgeEmoji:"⚽",league:"",year:"2025/26"});
+const[seasonForm,setSeasonForm]=useState({teamName:"",teamBadgeEmoji:"⚽",league:"",year:"2025/26",copySquad:true});
 const[editSave,setEditSave]=useState(null);
 const[editSeason,setEditSeason]=useState(null);
 
 const activeSave=data.saves.find(s=>s.id===data.activeSaveId);
 const activeSeason=activeSave?.seasons.find(s=>s.id===activeSave.activeSeasonId);
+const lastSeason=activeSave?.seasons[activeSave?.seasons.length-1];
 
 const createSave=()=>{
 const sv={...DEFAULT_SAVE,...saveForm,id:genId(),createdAt:today(),seasons:[]};
@@ -973,9 +1117,21 @@ toast("Save criado!");setSaveModal(false);};
 
 const createSeason=()=>{
 if(!seasonForm.teamName)return;
-const sn={...DEFAULT_SEASON,...seasonForm,id:genId(),number:(activeSave?.seasons.length||0)+1};
+const newNum=(activeSave?.seasons.length||0)+1;
+let players=[];
+// Copy squad from last season if same team and option is checked
+if(seasonForm.copySquad&&lastSeason&&lastSeason.players.length>0){
+players=lastSeason.players.map(p=>({
+...p,
+id:genId(),
+age:(p.age||0)+1,
+goals:0,assists:0,matchesPlayed:0,avgRating:0,motm:0,
+overallHistory:[...(p.overallHistory||[]),{season:newNum,overall:p.overall||0}],
+}));
+}
+const sn={...DEFAULT_SEASON,teamName:seasonForm.teamName,teamBadgeEmoji:seasonForm.teamBadgeEmoji,league:seasonForm.league,year:seasonForm.year,id:genId(),number:newNum,players};
 setData(d=>({...d,saves:d.saves.map(s=>s.id===d.activeSaveId?{...s,seasons:[...s.seasons,sn],activeSeasonId:sn.id}:s)}));
-toast("Temporada criada!");setSeasonModal(false);};
+toast(players.length>0?`Temporada criada com ${players.length} jogadores!`:"Temporada criada!");setSeasonModal(false);};
 
 const deleteSave=(id)=>{
 setData(d=>{const newSaves=d.saves.filter(s=>s.id!==id);return{...d,saves:newSaves,activeSaveId:newSaves.length>0?newSaves[0].id:null};});
@@ -1029,10 +1185,10 @@ return(<div>
 </div>}
 <button className="btn bp" onClick={()=>{
 const last=activeSave.seasons[activeSave.seasons.length-1];
-setSeasonForm({teamName:last?.teamName||"",teamBadgeEmoji:last?.teamBadgeEmoji||"⚽",league:last?.league||"",year:""});
+setSeasonForm({teamName:last?.teamName||"",teamBadgeEmoji:last?.teamBadgeEmoji||"⚽",league:last?.league||"",year:"",copySquad:!!last?.players?.length});
 setSeasonModal(true);
 }}>{I.plus} Nova Temporada</button>
-{activeSave.seasons.length>0&&<p style={{fontSize:12,color:"var(--text3)",marginTop:8}}>Dica: Ao trocar de time, crie uma nova temporada com o novo clube. O histórico anterior é preservado.</p>}
+{activeSave.seasons.length>0&&<p style={{fontSize:12,color:"var(--text3)",marginTop:8}}>Dica: Ao trocar de time, desmarque "Copiar elenco". Ao continuar com o mesmo time, o elenco é copiado com idades +1.</p>}
 </div>}
 
 {/* Theme */}
@@ -1094,6 +1250,20 @@ setSeasonModal(true);
 </div>
 <div style={{fontSize:12,color:"var(--text3)",marginBottom:8}}>Mais emojis de escudo:</div>
 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>{BADGE_EMOJIS.map(e=><div key={e} className={`form-badge ${seasonForm.teamBadgeEmoji===e?"sel":""}`} style={{width:36,height:36,fontSize:18}} onClick={()=>setSeasonForm({...seasonForm,teamBadgeEmoji:e})}>{e}</div>)}</div>
+
+{/* Copy Squad Toggle */}
+{lastSeason&&lastSeason.players.length>0&&<div style={{borderTop:"1px solid var(--border)",paddingTop:12,marginBottom:12}}>
+<div onClick={()=>setSeasonForm({...seasonForm,copySquad:!seasonForm.copySquad})} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 0"}}>
+<div style={{width:40,height:22,borderRadius:11,background:seasonForm.copySquad?"var(--accent)":"var(--bg4)",transition:"all .2s",position:"relative",flexShrink:0}}>
+<div style={{width:18,height:18,borderRadius:9,background:"#fff",position:"absolute",top:2,left:seasonForm.copySquad?20:2,transition:"all .2s",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}/>
+</div>
+<div style={{flex:1}}>
+<div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>Copiar elenco da temporada anterior</div>
+<div style={{fontSize:11,color:"var(--text3)"}}>{lastSeason.players.length} jogadores · idades +1 · stats zerados</div>
+</div>
+</div>
+</div>}
+
 <div className="ma"><button className="btn bg" onClick={()=>setSeasonModal(false)}>Cancelar</button><button className="btn bp" onClick={createSeason}>Criar Temporada</button></div>
 </Modal>}
 </div>);
@@ -1314,7 +1484,7 @@ return(<><style>{getCSS(tv,myAccent)}</style><div className="app">
 {so&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:99}} onClick={()=>setSo(false)}/>}
 
 <main className="mc">
-{page==="dashboard"&&<Dashboard save={activeSave} season={activeSeason} goTo={go} allSeasons={allSeasons}/>}
+{page==="dashboard"&&<Dashboard save={activeSave} season={activeSeason} goTo={go} allSeasons={allSeasons} setSeason={setSeason} toast={toast}/>}
 {page==="matches"&&<MatchesPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config}/>}
 {page==="squad"&&<SquadPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config}/>}
 {page==="transfers"&&<TransfersPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config}/>}
