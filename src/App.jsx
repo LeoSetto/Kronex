@@ -53,6 +53,9 @@ const DEFAULT_SEASON = {
   objectives: [],
   notes: "",
   youthAcademy: [],
+  leaguePosition: "",
+  leaguePoints: "",
+  diary: [],
 };
 
 // ─── Data migration ───
@@ -310,6 +313,185 @@ return(<div className="m-only" style={{position:"fixed",bottom:24,right:20,zInde
 </button></div>);
 }
 
+// ─── OVR EVOLUTION CHART (pure CSS, no library) ───
+function OvrChart({history}){
+if(!history||history.length<2)return null;
+const vals=history.map(h=>h.overall);const min=Math.min(...vals)-3;const max=Math.max(...vals)+3;const range=max-min||1;
+return(<div style={{marginTop:12,borderTop:"1px solid var(--border)",paddingTop:12}}>
+<div style={{fontSize:11,textTransform:"uppercase",letterSpacing:1.5,color:"var(--text3)",fontWeight:600,marginBottom:8}}>📈 Evolução de Overall</div>
+<div style={{display:"flex",alignItems:"flex-end",gap:4,height:80,padding:"0 4px"}}>
+{history.map((h,i)=>{const pct=((h.overall-min)/range)*100;const prev=i>0?history[i-1].overall:h.overall;const diff=h.overall-prev;
+return(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,height:"100%",justifyContent:"flex-end"}}>
+<span style={{fontSize:10,fontWeight:700,color:diff>0?"var(--green)":diff<0?"var(--red)":"var(--text2)"}}>{h.overall}</span>
+<div style={{width:"100%",maxWidth:36,borderRadius:"4px 4px 0 0",background:diff>0?"var(--green)":diff<0?"var(--red)":"var(--accent)",opacity:.7,height:`${Math.max(pct,8)}%`,transition:"height .4s",minHeight:4}}/>
+<span style={{fontSize:9,color:"var(--text3)"}}>T{h.season}</span>
+</div>);})}
+</div>
+</div>);
+}
+
+// ─── LEAGUE POSITION CARD ───
+function LeagueCard({season,setSeason}){
+if(!season)return null;
+const pos=season.leaguePosition||"";const pts=season.leaguePoints||"";
+const posNum=Number(pos);
+const posColor=posNum===1?"var(--accent)":posNum<=3?"var(--green)":posNum<=6?"var(--blue)":posNum<=10?"var(--yellow)":"var(--text2)";
+const posLabel=posNum===1?"🥇 Líder":posNum===2?"🥈 2º lugar":posNum===3?"🥉 3º lugar":posNum?`${posNum}º lugar`:"";
+return(<div className="card">
+<div className="ct">🏅 Classificação na Liga</div>
+<div style={{display:"flex",gap:12,alignItems:"center"}}>
+<div style={{display:"flex",gap:8,flex:1}}>
+<div style={{flex:1}}><label className="fl">Posição</label>
+<input type="number" min="1" max="30" value={pos} onChange={e=>setSeason(s=>({...s,leaguePosition:e.target.value}))} placeholder="Ex: 3" style={{textAlign:"center",fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",padding:8}}/></div>
+<div style={{flex:1}}><label className="fl">Pontos</label>
+<input type="number" min="0" value={pts} onChange={e=>setSeason(s=>({...s,leaguePoints:e.target.value}))} placeholder="Ex: 45" style={{textAlign:"center",fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",padding:8}}/></div>
+</div>
+{posNum>0&&<div style={{textAlign:"center",flexShrink:0}}>
+<div style={{fontSize:28,fontWeight:900,fontFamily:"'Outfit',sans-serif",color:posColor}}>{posNum}º</div>
+<div style={{fontSize:10,color:"var(--text3)"}}>{pts?`${pts} pts`:""}</div>
+</div>}
+</div>
+{posLabel&&<div style={{marginTop:8,fontSize:13,color:posColor,fontWeight:600}}>{posLabel}</div>}
+</div>);
+}
+
+// ─── DIARY / SEASON NOTES ───
+function DiaryCard({season,setSeason,toast}){
+if(!season)return null;
+const[adding,setAdding]=useState(false);const[text,setText]=useState("");
+const diary=season.diary||[];
+const addEntry=()=>{if(!text.trim())return;setSeason(s=>({...s,diary:[...(s.diary||[]),{id:genId(),text:text.trim(),date:today()}]}));setText("");setAdding(false);toast("Nota adicionada");};
+const remEntry=(id)=>setSeason(s=>({...s,diary:(s.diary||[]).filter(d=>d.id!==id)}));
+return(<div className="card">
+<div className="ct">📝 Diário da Temporada</div>
+{diary.length>0&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+{diary.slice().reverse().map(d=>(
+<div key={d.id} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+<div style={{width:3,background:"var(--accent)",borderRadius:2,flexShrink:0}}/>
+<div style={{flex:1,minWidth:0}}>
+<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5,wordBreak:"break-word"}}>{d.text}</div>
+<div style={{fontSize:10,color:"var(--text3)",marginTop:4}}>{d.date}</div>
+</div>
+<button onClick={()=>remEntry(d.id)} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",padding:2,fontSize:14,flexShrink:0,alignSelf:"flex-start"}}>×</button>
+</div>))}
+</div>}
+{adding?<div>
+<textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Ex: Perdi o zagueiro titular por 3 meses..." autoFocus rows={3} style={{marginBottom:8}}/>
+<div style={{display:"flex",gap:8}}><button className="btn bp bs" onClick={addEntry}>Salvar</button><button className="btn bg bs" onClick={()=>setAdding(false)}>Cancelar</button></div>
+</div>:
+<button className="btn bg bs" onClick={()=>setAdding(true)}>{I.plus} Nova Anotação</button>}
+</div>);
+}
+
+// ─── ACHIEVEMENTS ENGINE ───
+function getAchievements(allSeasons,activeSeason){
+const achs=[];
+const allMatches=allSeasons.flatMap(s=>s.matches||[]);
+const allTrophies=allSeasons.flatMap(s=>s.trophies||[]);
+const allPlayers={};
+allSeasons.forEach(s=>(s.players||[]).forEach(p=>{
+if(!allPlayers[p.name])allPlayers[p.name]={totalGoals:0,totalAssists:0};
+allPlayers[p.name].totalGoals+=(p.goals||0);
+allPlayers[p.name].totalAssists+=(p.assists||0);
+}));
+const totalGoals=Object.values(allPlayers).reduce((a,p)=>a+p.totalGoals,0);
+const totalAssists=Object.values(allPlayers).reduce((a,p)=>a+p.totalAssists,0);
+
+// Match milestones
+if(allMatches.length>=1) achs.push({icon:"⚽",name:"Primeiro Jogo",desc:"Registrou sua primeira partida",done:true});
+if(allMatches.length>=50) achs.push({icon:"🎮",name:"Veterano",desc:"50 partidas registradas",done:true});
+if(allMatches.length>=100) achs.push({icon:"🏟️",name:"Centenário",desc:"100 partidas registradas",done:true});
+if(allMatches.length>=250) achs.push({icon:"👑",name:"Lenda",desc:"250 partidas registradas",done:true});
+
+// Goal milestones
+if(totalGoals>=50) achs.push({icon:"🔥",name:"Máquina de Gols",desc:"50 gols na carreira",done:true});
+if(totalGoals>=100) achs.push({icon:"💯",name:"Centenário de Gols",desc:"100 gols marcados",done:true});
+if(totalGoals>=500) achs.push({icon:"⚡",name:"Artilheiro Supremo",desc:"500 gols na carreira",done:true});
+
+// Trophy milestones
+if(allTrophies.length>=1) achs.push({icon:"🏆",name:"Primeiro Título",desc:"Conquistou seu primeiro troféu",done:true});
+if(allTrophies.length>=5) achs.push({icon:"🏆",name:"Colecionador",desc:"5 troféus conquistados",done:true});
+if(allTrophies.length>=10) achs.push({icon:"🏆",name:"Dinastia",desc:"10 troféus conquistados",done:true});
+
+// Season achievements
+allSeasons.forEach(s=>{
+const ms=matchStats(s.matches||[]);
+if(ms.total>=10&&ms.l===0) achs.push({icon:"🛡️",name:"Invicto",desc:`Temporada ${s.number} sem derrotas (${ms.total} jogos)`,done:true});
+if(ms.total>=10&&ms.ga===0) achs.push({icon:"🧤",name:"Muralha",desc:`Temporada ${s.number} sem gols sofridos`,done:true});
+if(ms.total>=10&&ms.w===ms.total) achs.push({icon:"💎",name:"Perfeição",desc:`Temporada ${s.number} — 100% de vitórias`,done:true});
+});
+
+// Streaks
+allSeasons.forEach(s=>{
+const sk=getStreaks(s.matches||[]);
+if(sk.winStreak>=10) achs.push({icon:"🔥",name:"Em Chamas",desc:`${sk.winStreak} vitórias seguidas na temp. ${s.number}`,done:true});
+if(sk.unbeaten>=20) achs.push({icon:"⚔️",name:"Inabalável",desc:`${sk.unbeaten} jogos invicto na temp. ${s.number}`,done:true});
+});
+
+// Multi-season
+if(allSeasons.length>=3) achs.push({icon:"📅",name:"Carreira Longa",desc:"3+ temporadas jogadas",done:true});
+if(allSeasons.length>=5) achs.push({icon:"📅",name:"Veterano de Bancada",desc:"5+ temporadas jogadas",done:true});
+
+// Youth
+const totalYouth=allSeasons.reduce((a,s)=>a+(s.youthAcademy||[]).length,0);
+if(totalYouth>=5) achs.push({icon:"🌱",name:"Formador",desc:"5+ jovens na academia",done:true});
+
+// Upcoming (not yet achieved) — show as locked
+const upcoming=[];
+if(allMatches.length<50) upcoming.push({icon:"🎮",name:"Veterano",desc:`${allMatches.length}/50 partidas`,done:false});
+if(totalGoals<100&&totalGoals>=10) upcoming.push({icon:"💯",name:"Centenário de Gols",desc:`${totalGoals}/100 gols`,done:false});
+if(allTrophies.length<5&&allTrophies.length>=1) upcoming.push({icon:"🏆",name:"Colecionador",desc:`${allTrophies.length}/5 troféus`,done:false});
+
+// Remove duplicates by name, keep first
+const seen=new Set();const unique=[];
+[...achs,...upcoming].forEach(a=>{if(!seen.has(a.name)){seen.add(a.name);unique.push(a);}});
+return unique;
+}
+
+function AchievementsCard({allSeasons,activeSeason}){
+const achs=getAchievements(allSeasons,activeSeason);
+const done=achs.filter(a=>a.done).length;
+if(achs.length===0)return null;
+return(<div className="card">
+<div className="ct">🏅 Conquistas <span style={{marginLeft:"auto",fontSize:12,color:"var(--text3)"}}>{done} desbloqueadas</span></div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
+{achs.map((a,i)=>(
+<div key={i} style={{padding:10,borderRadius:10,background:a.done?"var(--accent-glow)":"var(--bg3)",border:`1px solid ${a.done?"var(--accent)":"var(--border)"}`,textAlign:"center",opacity:a.done?1:.5,transition:"all .2s"}}>
+<div style={{fontSize:24,marginBottom:4}}>{a.icon}</div>
+<div style={{fontSize:11,fontWeight:700,color:a.done?"var(--accent)":"var(--text3)"}}>{a.name}</div>
+<div style={{fontSize:9,color:"var(--text3)",marginTop:2}}>{a.desc}</div>
+</div>))}
+</div>
+</div>);
+}
+
+// ─── SHARE SEASON SUMMARY ───
+function shareSeasonSummary(season,allSeasons){
+if(!season)return;
+const ms=matchStats(season.matches);const sk=getStreaks(season.matches);
+const topScorer=[...(season.players||[])].sort((a,b)=>(b.goals||0)-(a.goals||0))[0];
+const totalTrophies=allSeasons.reduce((a,s)=>a+(s.trophies||[]).length,0);
+const trophyNames=(season.trophies||[]).map(t=>`🏆 ${t.name}`).join("\n");
+const pos=season.leaguePosition?`📊 ${season.leaguePosition}º lugar${season.leaguePoints?` — ${season.leaguePoints} pts`:""}`:null;
+
+let text=`⚽ *${season.teamBadgeEmoji} ${season.teamName}*\n`;
+text+=`📅 Temporada ${season.number} · ${season.year}\n`;
+text+=`🏟️ ${season.league}\n\n`;
+text+=`📊 *Resultados*\n`;
+text+=`${ms.total} jogos: ${ms.w}V ${ms.d}E ${ms.l}D\n`;
+text+=`⚽ ${ms.gf} gols marcados · ${ms.ga} sofridos\n`;
+text+=`📈 Aproveitamento: ${ms.total>0?Math.round((ms.pts/(ms.total*3))*100):0}%\n`;
+if(pos) text+=`${pos}\n`;
+text+=`\n🔥 *Sequências*\n`;
+text+=`Vitórias: ${sk.winStreak} · Invicto: ${sk.unbeaten}\n`;
+if(topScorer&&(topScorer.goals||0)>0){text+=`\n👑 *Artilheiro:* ${topScorer.name} (${topScorer.goals} gols)\n`;}
+if(trophyNames){text+=`\n🏆 *Títulos*\n${trophyNames}\n`;}
+text+=`\n_Registrado no Kronex_`;
+
+if(navigator.share){navigator.share({text}).catch(()=>{});}
+else{navigator.clipboard?.writeText(text).then(()=>alert("Copiado!")).catch(()=>{window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank");});}
+}
+
 // ─── OBJECTIVES CARD ───
 function ObjectivesCard({season,setSeason,toast}){
 const[adding,setAdding]=useState(false);
@@ -360,10 +542,16 @@ const totalTrophies=allSeasons.reduce((a,s)=>a+(s.trophies||[]).length,0);
 const recent=sn.matches.slice(-5).reverse();
 
 return(<div>
-<div className="ph"><div className="pt">{sn.teamBadgeEmoji} {sn.teamName}</div><div className="ps">{sn.league} · {sn.year} · Temporada {sn.number}</div></div>
+<div className="ph">
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+<div><div className="pt">{sn.teamBadgeEmoji} {sn.teamName}</div><div className="ps">{sn.league} · {sn.year} · Temporada {sn.number}</div></div>
+<button className="btn bg bs" onClick={()=>shareSeasonSummary(sn,allSeasons)} title="Compartilhar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg> Compartilhar</button>
+</div>
+</div>
 
 <div className="sg">
 <div className="sc ac"><div className="sl">Jogos</div><div className="sv">{ms.total}</div><div className="sd">{ms.w}V {ms.d}E {ms.l}D</div></div>
+{(sn.leaguePosition||0)>0&&<div className="sc gn"><div className="sl">Liga</div><div className="sv">{sn.leaguePosition}º</div><div className="sd">{sn.leaguePoints?`${sn.leaguePoints} pontos`:sn.league}</div></div>}
 <div className="sc gn"><div className="sl">Gols</div><div className="sv">{ms.gf}</div><div className="sd">Sofridos: {ms.ga} · Saldo: {ms.gf-ms.ga>0?"+":""}{ms.gf-ms.ga}</div></div>
 <div className="sc bl"><div className="sl">Aproveitamento</div><div className="sv">{ms.total>0?Math.round((ms.pts/(ms.total*3))*100):0}%</div><div className="sd">{ms.pts} pontos em {ms.total*3} possíveis</div></div>
 <div className="sc yl"><div className="sl">Sequências</div><div className="sv">{streaks.winStreak}V</div><div className="sd">Invicto: {streaks.unbeaten} · Derrotas: {streaks.loseStreak}</div></div>
@@ -405,6 +593,15 @@ return(<div>
 
 {/* Objectives */}
 <ObjectivesCard season={sn} setSeason={setSeason} toast={toast}/>
+
+{/* League Position */}
+<LeagueCard season={sn} setSeason={setSeason}/>
+
+{/* Diary */}
+<DiaryCard season={sn} setSeason={setSeason} toast={toast}/>
+
+{/* Achievements */}
+<AchievementsCard allSeasons={allSeasons} activeSeason={sn}/>
 </div>);
 }
 
@@ -721,6 +918,8 @@ return(<div>
 <div className="fr">
 <div className="fg"><label className="fl">MOTM</label><input type="number" min="0" value={form.motm||""} onChange={e=>setForm({...form,motm:e.target.value})}/></div>
 </div>
+{/* OVR Evolution Chart */}
+{modal==="edit"&&<OvrChart history={form.overallHistory}/>}
 <div className="fr"><div className="fg"><label className="fl">Notas</label><textarea value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Observações sobre o jogador..." rows={2}/></div></div>
 <div className="ma">
 {modal==="edit"&&<ConfirmDelete onConfirm={()=>{rem(form.id);setModal(false);}} label="Excluir"/>}
