@@ -230,43 +230,48 @@ input,select,textarea{background:var(--bg3);border:1px solid var(--border);borde
 @media(max-width:768px){
 .sb{transform:translateX(-100%);width:280px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .sb.open{transform:translateX(0)}
-.mc{margin-left:0;padding:60px 16px 80px;max-width:100vw;overflow-x:hidden}
+.mc{margin-left:0;padding:60px 12px 80px;max-width:100vw;overflow-x:hidden;box-sizing:border-box;width:100%}
 .mh{display:flex;height:52px}
 .app{overflow-x:hidden;max-width:100vw;width:100%}
-body,html,#root{overflow-x:hidden;max-width:100vw}
-.ph{margin-bottom:16px}.pt{font-size:22px}.ps{font-size:12px}
-.sg{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;margin-bottom:20px;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+body,html,#root{overflow-x:hidden;max-width:100vw;width:100%}
+.ph{margin-bottom:16px;overflow:hidden}.pt{font-size:20px;word-break:break-word}.ps{font-size:11px;word-break:break-word}
+.sg{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;margin-bottom:16px;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .sg::-webkit-scrollbar{display:none}
-.sc{min-width:150px;flex-shrink:0;scroll-snap-align:start;padding:14px}
-.sv{font-size:20px}.sl{font-size:9px;letter-spacing:1px;margin-bottom:4px}.sd{font-size:11px}
-.dg{grid-template-columns:1fr;gap:12px}
-.card{padding:14px;margin-bottom:10px;border-radius:12px}.ct{font-size:14px;margin-bottom:10px}
-.tb{flex-direction:column;gap:8px;margin-bottom:12px}.tb select{width:100%}.tr{margin-left:0;width:100%;display:flex;gap:8px}.tr .btn{flex:1}
-.btn{padding:8px 12px;font-size:12px;white-space:nowrap}.bp{padding:8px 14px}.bs{padding:5px 10px;font-size:11px}.bi{padding:6px}
-.filter-scroll .btn{flex-shrink:0}
+.sc{min-width:140px;flex-shrink:0;scroll-snap-align:start;padding:12px}
+.sv{font-size:18px}.sl{font-size:9px;letter-spacing:1px;margin-bottom:4px}.sd{font-size:10px;word-break:break-word}
+.dg{grid-template-columns:1fr;gap:10px}
+.card{padding:12px;margin-bottom:10px;border-radius:12px;overflow:hidden;word-break:break-word;max-width:100%;box-sizing:border-box}.ct{font-size:13px;margin-bottom:10px;overflow:hidden}
+.tb{flex-direction:column;gap:8px;margin-bottom:12px;width:100%;overflow:hidden}.tb select{width:100%}.tr{margin-left:0;width:100%;display:flex;gap:8px;overflow:hidden}.tr .btn{flex:1;min-width:0}
+.btn{padding:8px 10px;font-size:11px;white-space:nowrap;min-width:0}.bp{padding:8px 12px}.bs{padding:5px 8px;font-size:10px}.bi{padding:5px}
+.filter-scroll{width:100%;max-width:100%;overflow-x:auto}.filter-scroll .btn{flex-shrink:0}
 table{display:none}
-.m-cards{display:flex;flex-direction:column;gap:8px}
-.m-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px}
-.m-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
-.m-card-n{font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.m-card-r{display:flex;flex-wrap:wrap;gap:4px;font-size:11px;color:var(--text2);align-items:center}
-.m-card-a{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
-.m-card-a .bi{padding:5px;border-radius:6px}
-.tg{font-size:10px;padding:2px 7px}
+.m-cards{display:flex;flex-direction:column;gap:8px;width:100%}
+.m-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;overflow:hidden;max-width:100%;box-sizing:border-box}
+.m-card-h{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px;overflow:hidden}
+.m-card-n{font-size:12px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.m-card-r{display:flex;flex-wrap:wrap;gap:3px;font-size:10px;color:var(--text2);align-items:center;overflow:hidden}
+.m-card-a{display:flex;gap:4px;margin-top:6px;justify-content:flex-end;flex-shrink:0}
+.m-card-a .bi{padding:4px;border-radius:6px}
+.tg{font-size:9px;padding:2px 6px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .mo{align-items:flex-end;padding:0}
-.md{width:100%;max-width:100%;border-radius:16px 16px 0 0;max-height:90vh;padding:20px 16px;animation:slideUp .25s cubic-bezier(.4,0,.2,1)}
+.md{width:100%;max-width:100%;border-radius:16px 16px 0 0;max-height:90vh;padding:16px 14px;animation:slideUp .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;box-sizing:border-box}
 @keyframes slideUp{from{transform:translateY(100%);opacity:.8}to{transform:translateY(0);opacity:1}}
-.mdt{font-size:17px;margin-bottom:14px}
-.ma{margin-top:14px}.ma .btn{flex:1}
-input,select,textarea{font-size:16px;padding:11px 12px}select{font-size:14px;width:100%}
-.toast{bottom:14px;right:12px;left:12px;font-size:12px;padding:10px 14px;border-radius:10px}
-.fr{flex-direction:column;gap:8px;margin-bottom:8px}.fg{min-width:100%}.fl{font-size:10px}
+.mdt{font-size:16px;margin-bottom:12px}
+.ma{margin-top:12px;gap:8px}.ma .btn{flex:1;min-width:0}
+input,select,textarea{font-size:16px;padding:10px 10px;max-width:100%;box-sizing:border-box}select{font-size:14px;width:100%}
+.toast{bottom:14px;right:10px;left:10px;font-size:11px;padding:10px 12px;border-radius:10px;max-width:100vw;box-sizing:border-box}
+.fr{flex-direction:column;gap:8px;margin-bottom:8px;width:100%}.fg{min-width:0;width:100%}.fl{font-size:10px}
 .form-grid{grid-template-columns:1fr}
 .logo{font-size:20px}.logo-s{font-size:9px;letter-spacing:2px}
 .ni{padding:10px 14px;font-size:13px;gap:10px}
-.player-row{padding:8px 10px;gap:8px}
-.ovr{width:32px;height:32px;font-size:13px;border-radius:8px}
+.player-row{padding:8px 10px;gap:6px;overflow:hidden;max-width:100%;box-sizing:border-box}
+.ovr{width:30px;height:30px;font-size:12px;border-radius:8px;flex-shrink:0}
 .season-chip{padding:5px 10px;font-size:11px}
+.empty-state{padding:32px 16px}
+.form-badge{width:36px;height:36px;font-size:16px}
+/* Fix all flex children from overflowing */
+.player-row>div{min-width:0;overflow:hidden}
+.player-row>div>div{overflow:hidden;text-overflow:ellipsis}
 }
 @media(max-width:768px){.m-only{display:flex}.d-only{display:none}}
 @media(min-width:769px){.m-only{display:none}.d-only{display:block}}
@@ -337,11 +342,11 @@ return(<div>
 {recent.length===0?<div style={{color:"var(--text3)",fontSize:13}}>Nenhum jogo registrado</div>:
 <div style={{display:"flex",flexDirection:"column",gap:8}}>
 {recent.map(m=>{const rb=resultBadge(m.goalsFor,m.goalsAgainst);return(
-<div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:"1px solid var(--border)"}}>
-<span className={`tg ${rb.cls}`} style={{minWidth:24,textAlign:"center"}}>{rb.label}</span>
-<span style={{fontSize:13,color:"var(--text)",fontWeight:600,flex:1}}>{m.opponent}</span>
-<span style={{fontSize:14,fontWeight:700,fontFamily:"'Outfit',sans-serif"}}>{m.goalsFor} - {m.goalsAgainst}</span>
-<span className="tg tg-n" style={{fontSize:10}}>{m.competition}</span>
+<div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid var(--border)",overflow:"hidden"}}>
+<span className={`tg ${rb.cls}`} style={{minWidth:22,textAlign:"center",flexShrink:0}}>{rb.label}</span>
+<span style={{fontSize:12,color:"var(--text)",fontWeight:600,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.opponent}</span>
+<span style={{fontSize:13,fontWeight:700,fontFamily:"'Outfit',sans-serif",flexShrink:0}}>{m.goalsFor}-{m.goalsAgainst}</span>
+<span className="tg tg-n" style={{fontSize:9,flexShrink:0}}>{m.competition}</span>
 </div>);})}
 <div style={{display:"flex",gap:4,marginTop:8}}>{form.map((f,i)=><div key={i} className={`form-dot ${f}`}>{f}</div>)}</div>
 </div>}
@@ -350,10 +355,10 @@ return(<div>
 <div className="card">
 <div className="ct">⭐ Destaques</div>
 <div style={{display:"flex",flexDirection:"column",gap:12}}>
-{topScorer&&<div style={{display:"flex",alignItems:"center",gap:10}}><OvrBadge value={topScorer.overall} size={32}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{topScorer.name}</div><div style={{fontSize:11,color:"var(--text3)"}}>Artilheiro</div></div><span style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--green)"}}>{topScorer.goals||0}⚽</span></div>}
-{topAssister&&<div style={{display:"flex",alignItems:"center",gap:10}}><OvrBadge value={topAssister.overall} size={32}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{topAssister.name}</div><div style={{fontSize:11,color:"var(--text3)"}}>Assistências</div></div><span style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--blue)"}}>{topAssister.assists||0}🅰️</span></div>}
-{topRated&&<div style={{display:"flex",alignItems:"center",gap:10}}><OvrBadge value={topRated.overall} size={32}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{topRated.name}</div><div style={{fontSize:11,color:"var(--text3)"}}>Melhor Nota</div></div><span style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--yellow)"}}>{(topRated.avgRating||0).toFixed(1)}⭐</span></div>}
-{motmLeader&&(motmLeader.motm||0)>0&&<div style={{display:"flex",alignItems:"center",gap:10}}><OvrBadge value={motmLeader.overall} size={32}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{motmLeader.name}</div><div style={{fontSize:11,color:"var(--text3)"}}>Man of the Match</div></div><span style={{fontSize:18,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--purple)"}}>{motmLeader.motm}🏅</span></div>}
+{topScorer&&<div style={{display:"flex",alignItems:"center",gap:8,overflow:"hidden"}}><OvrBadge value={topScorer.overall} size={30}/><div style={{flex:1,minWidth:0,overflow:"hidden"}}><div style={{fontSize:12,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topScorer.name}</div><div style={{fontSize:10,color:"var(--text3)"}}>Artilheiro</div></div><span style={{fontSize:16,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--green)",flexShrink:0}}>{topScorer.goals||0}⚽</span></div>}
+{topAssister&&<div style={{display:"flex",alignItems:"center",gap:8,overflow:"hidden"}}><OvrBadge value={topAssister.overall} size={30}/><div style={{flex:1,minWidth:0,overflow:"hidden"}}><div style={{fontSize:12,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topAssister.name}</div><div style={{fontSize:10,color:"var(--text3)"}}>Assistências</div></div><span style={{fontSize:16,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--blue)",flexShrink:0}}>{topAssister.assists||0}🅰️</span></div>}
+{topRated&&<div style={{display:"flex",alignItems:"center",gap:8,overflow:"hidden"}}><OvrBadge value={topRated.overall} size={30}/><div style={{flex:1,minWidth:0,overflow:"hidden"}}><div style={{fontSize:12,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topRated.name}</div><div style={{fontSize:10,color:"var(--text3)"}}>Melhor Nota</div></div><span style={{fontSize:16,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--yellow)",flexShrink:0}}>{(topRated.avgRating||0).toFixed(1)}⭐</span></div>}
+{motmLeader&&(motmLeader.motm||0)>0&&<div style={{display:"flex",alignItems:"center",gap:8,overflow:"hidden"}}><OvrBadge value={motmLeader.overall} size={30}/><div style={{flex:1,minWidth:0,overflow:"hidden"}}><div style={{fontSize:12,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{motmLeader.name}</div><div style={{fontSize:10,color:"var(--text3)"}}>Man of the Match</div></div><span style={{fontSize:16,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--purple)",flexShrink:0}}>{motmLeader.motm}🏅</span></div>}
 {!topScorer&&<div style={{color:"var(--text3)",fontSize:13}}>Registre jogadores e partidas para ver destaques</div>}
 </div>
 </div>
@@ -522,10 +527,10 @@ return(<div>
 <OvrBadge value={p.overall}/>
 {compareIds.includes(p.id)&&<div style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:7,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#000"}}>✓</div>}
 </div>
-<div style={{flex:1,minWidth:0}}>
+<div style={{flex:1,minWidth:0,overflow:"hidden"}}>
 <div style={{display:"flex",alignItems:"center",gap:6}}>
-{p.shirtNumber>0&&<span style={{fontSize:11,color:"var(--text3)",fontWeight:700}}>#{p.shirtNumber}</span>}
-<span style={{fontSize:14,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+{p.shirtNumber>0&&<span style={{fontSize:11,color:"var(--text3)",fontWeight:700,flexShrink:0}}>#{p.shirtNumber}</span>}
+<span style={{fontSize:13,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{p.name}</span>
 </div>
 <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
 <span className="tg tg-ac" style={{fontSize:10}}>{p.position}</span>
@@ -533,11 +538,11 @@ return(<div>
 {p.potential>p.overall&&<span style={{fontSize:11,color:"var(--green)"}}>↑{p.potential}</span>}
 </div>
 </div>
-<div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
-{(p.goals||0)>0&&<span style={{fontSize:12,color:"var(--text2)"}}>⚽{p.goals}</span>}
-{(p.assists||0)>0&&<span style={{fontSize:12,color:"var(--text2)"}}>🅰️{p.assists}</span>}
-{(p.avgRating||0)>0&&<span style={{fontSize:12,color:"var(--yellow)"}}>⭐{(p.avgRating).toFixed(1)}</span>}
-<button className="bi" style={{padding:4}} onClick={e=>{e.stopPropagation();toggleCompare(p.id);}} title="Comparar">{I.compare}</button>
+<div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+{(p.goals||0)>0&&<span style={{fontSize:11,color:"var(--text2)"}}>⚽{p.goals}</span>}
+{(p.assists||0)>0&&<span style={{fontSize:11,color:"var(--text2)"}}>🅰️{p.assists}</span>}
+{(p.avgRating||0)>0&&<span style={{fontSize:11,color:"var(--yellow)"}}>⭐{(p.avgRating).toFixed(1)}</span>}
+<button className="bi" style={{padding:3}} onClick={e=>{e.stopPropagation();toggleCompare(p.id);}} title="Comparar">{I.compare}</button>
 </div>
 </div>))}
 </div>}
@@ -636,11 +641,11 @@ return(<div>
 {filtered.length===0?<EmptyState icon="🔄" title="Nenhuma transferência" sub="Registre compras, vendas e empréstimos"/>:
 <div className="card" style={{padding:0}}>
 {filtered.map(t=>(
-<div key={t.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"1px solid var(--border)",transition:"all .15s"}}>
-<div style={{width:36,height:36,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,background:t.type.includes("Compra")||t.type.includes("entrada")?"var(--green-bg)":"var(--red-bg)"}}>{t.type.includes("Compra")||t.type.includes("entrada")?"📥":"📤"}</div>
-<div style={{flex:1,minWidth:0}}>
-<div style={{fontSize:14,fontWeight:600,color:"var(--text)"}}>{t.playerName}</div>
-<div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}><span className="tg tg-n">{t.type}</span>{t.from&&<span style={{fontSize:11,color:"var(--text3)"}}>de {t.from}</span>}{t.to&&<span style={{fontSize:11,color:"var(--text3)"}}>para {t.to}</span>}</div>
+<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderBottom:"1px solid var(--border)",transition:"all .15s",overflow:"hidden"}}>
+<div style={{width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,background:t.type.includes("Compra")||t.type.includes("entrada")?"var(--green-bg)":"var(--red-bg)"}}>{t.type.includes("Compra")||t.type.includes("entrada")?"📥":"📤"}</div>
+<div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+<div style={{fontSize:13,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.playerName}</div>
+<div style={{display:"flex",gap:4,alignItems:"center",marginTop:2,flexWrap:"wrap"}}><span className="tg tg-n">{t.type}</span>{t.from&&<span style={{fontSize:10,color:"var(--text3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>de {t.from}</span>}{t.to&&<span style={{fontSize:10,color:"var(--text3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>para {t.to}</span>}</div>
 </div>
 <span style={{fontSize:15,fontWeight:700,fontFamily:"'Outfit',sans-serif",color:t.fee>0?"var(--accent)":"var(--text3)"}}>{fmtFee(t.fee)}</span>
 <div style={{display:"flex",gap:4}}><button className="bi" onClick={()=>{setForm({...t});setModal("edit");}}>{I.edit}</button><ConfirmDelete onConfirm={()=>rem(t.id)}/></div>
@@ -890,29 +895,29 @@ return(<div>
 {topAllTimeScorer&&<div className="card" style={{textAlign:"center"}}>
 <div style={{fontSize:32,marginBottom:4}}>👑</div>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:2,color:"var(--text3)",fontWeight:600}}>Maior Artilheiro</div>
-<div style={{fontSize:22,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--accent)",margin:"4px 0"}}>{topAllTimeScorer.name}</div>
-<div style={{fontSize:28,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>{topAllTimeScorer.totalGoals} gols</div>
+<div style={{fontSize:20,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--accent)",margin:"4px 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topAllTimeScorer.name}</div>
+<div style={{fontSize:24,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>{topAllTimeScorer.totalGoals} gols</div>
 </div>}
 
 {topAllTimeAssister&&<div className="card" style={{textAlign:"center"}}>
 <div style={{fontSize:32,marginBottom:4}}>🎯</div>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:2,color:"var(--text3)",fontWeight:600}}>Mais Assistências</div>
-<div style={{fontSize:22,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--blue)",margin:"4px 0"}}>{topAllTimeAssister.name}</div>
-<div style={{fontSize:28,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>{topAllTimeAssister.totalAssists} assists</div>
+<div style={{fontSize:20,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--blue)",margin:"4px 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topAllTimeAssister.name}</div>
+<div style={{fontSize:24,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>{topAllTimeAssister.totalAssists} assists</div>
 </div>}
 
 {topAllTimeMotm&&topAllTimeMotm.totalMotm>0&&<div className="card" style={{textAlign:"center"}}>
 <div style={{fontSize:32,marginBottom:4}}>🏅</div>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:2,color:"var(--text3)",fontWeight:600}}>Mais MOTM</div>
-<div style={{fontSize:22,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--yellow)",margin:"4px 0"}}>{topAllTimeMotm.name}</div>
-<div style={{fontSize:28,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>{topAllTimeMotm.totalMotm} prêmios</div>
+<div style={{fontSize:20,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--yellow)",margin:"4px 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topAllTimeMotm.name}</div>
+<div style={{fontSize:24,fontWeight:900,fontFamily:"'Outfit',sans-serif"}}>{topAllTimeMotm.totalMotm} prêmios</div>
 </div>}
 
 {biggestWin&&<div className="card" style={{textAlign:"center"}}>
 <div style={{fontSize:32,marginBottom:4}}>💪</div>
 <div style={{fontSize:11,textTransform:"uppercase",letterSpacing:2,color:"var(--text3)",fontWeight:600}}>Maior Goleada</div>
-<div style={{fontSize:22,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--green)",margin:"4px 0"}}>{biggestWin.goalsFor} x {biggestWin.goalsAgainst}</div>
-<div style={{fontSize:13,color:"var(--text2)"}}>vs {biggestWin.opponent} · Temp. {biggestWin.season}</div>
+<div style={{fontSize:20,fontWeight:800,fontFamily:"'Outfit',sans-serif",color:"var(--green)",margin:"4px 0"}}>{biggestWin.goalsFor} x {biggestWin.goalsAgainst}</div>
+<div style={{fontSize:12,color:"var(--text2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>vs {biggestWin.opponent} · Temp. {biggestWin.season}</div>
 </div>}
 </div>
 
@@ -993,11 +998,11 @@ return(<div>
 {data.saves.length===0?<div style={{color:"var(--text3)",fontSize:13,marginBottom:12}}>Nenhum save criado ainda</div>:
 <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
 {data.saves.map(s=>(
-<div key={s.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,background:s.id===data.activeSaveId?"var(--accent-glow)":"var(--bg3)",border:`1px solid ${s.id===data.activeSaveId?"var(--accent)":"var(--border)"}`,cursor:"pointer",transition:"all .2s"}} onClick={()=>setData(d=>({...d,activeSaveId:s.id}))}>
-<div style={{fontSize:22}}>🎮</div>
-<div style={{flex:1}}>
-<div style={{fontSize:14,fontWeight:600,color:s.id===data.activeSaveId?"var(--accent)":"var(--text)"}}>{s.name}</div>
-<div style={{fontSize:11,color:"var(--text3)"}}>{s.gameVersion} · {s.difficulty} · {s.seasons.length} temp.</div>
+<div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,background:s.id===data.activeSaveId?"var(--accent-glow)":"var(--bg3)",border:`1px solid ${s.id===data.activeSaveId?"var(--accent)":"var(--border)"}`,cursor:"pointer",transition:"all .2s",overflow:"hidden"}} onClick={()=>setData(d=>({...d,activeSaveId:s.id}))}>
+<div style={{fontSize:20,flexShrink:0}}>🎮</div>
+<div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+<div style={{fontSize:13,fontWeight:600,color:s.id===data.activeSaveId?"var(--accent)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+<div style={{fontSize:10,color:"var(--text3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.gameVersion} · {s.difficulty} · {s.seasons.length} temp.</div>
 </div>
 {s.id===data.activeSaveId&&<span className="tg tg-ac">Ativo</span>}
 <ConfirmDelete onConfirm={()=>deleteSave(s.id)}/>
@@ -1012,11 +1017,11 @@ return(<div>
 {activeSave.seasons.length===0?<div style={{color:"var(--text3)",fontSize:13,marginBottom:12}}>Nenhuma temporada</div>:
 <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
 {activeSave.seasons.map(sn=>(
-<div key={sn.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,background:sn.id===activeSave.activeSeasonId?"var(--accent-glow)":"var(--bg3)",border:`1px solid ${sn.id===activeSave.activeSeasonId?"var(--accent)":"var(--border)"}`,cursor:"pointer",transition:"all .2s"}} onClick={()=>setData(d=>({...d,saves:d.saves.map(s=>s.id===d.activeSaveId?{...s,activeSeasonId:sn.id}:s)}))}>
-<span style={{fontSize:20}}>{sn.teamBadgeEmoji}</span>
-<div style={{flex:1}}>
-<div style={{fontSize:14,fontWeight:600,color:sn.id===activeSave.activeSeasonId?"var(--accent)":"var(--text)"}}>Temp. {sn.number} — {sn.teamName}</div>
-<div style={{fontSize:11,color:"var(--text3)"}}>{sn.league} · {sn.year} · {sn.matches.length} jogos · {sn.players.length} jogadores</div>
+<div key={sn.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,background:sn.id===activeSave.activeSeasonId?"var(--accent-glow)":"var(--bg3)",border:`1px solid ${sn.id===activeSave.activeSeasonId?"var(--accent)":"var(--border)"}`,cursor:"pointer",transition:"all .2s",overflow:"hidden"}} onClick={()=>setData(d=>({...d,saves:d.saves.map(s=>s.id===d.activeSaveId?{...s,activeSeasonId:sn.id}:s)}))}>
+<span style={{fontSize:18,flexShrink:0}}>{sn.teamBadgeEmoji}</span>
+<div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+<div style={{fontSize:13,fontWeight:600,color:sn.id===activeSave.activeSeasonId?"var(--accent)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Temp. {sn.number} — {sn.teamName}</div>
+<div style={{fontSize:10,color:"var(--text3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sn.league} · {sn.year} · {sn.matches.length} jogos · {sn.players.length} jogadores</div>
 </div>
 {(sn.trophies||[]).length>0&&<span style={{fontSize:14}}>🏆{sn.trophies.length}</span>}
 <ConfirmDelete onConfirm={()=>deleteSeason(sn.id)}/>
