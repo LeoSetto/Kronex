@@ -120,26 +120,70 @@ const getStreaks = (matches) => {
   return { winStreak, loseStreak, unbeaten };
 };
 
-// Best XI auto - pick highest rated player per position
+// Best XI auto - pick highest rated player per position (no duplicates)
 const getBestXI = (players, formation) => {
   const slots = FORMATIONS[formation] || FORMATIONS["4-3-3"];
+  const used = new Set();
   return slots.map(pos => {
-    const candidates = players.filter(p => p.position === pos || (p.altPositions || []).includes(pos));
-    if (candidates.length === 0) return { position: pos, player: null };
-    candidates.sort((a, b) => (b.overall || 0) - (a.overall || 0));
-    return { position: pos, player: candidates[0] };
+    const candidates = players
+      .filter(p => !used.has(p.id) && (p.position === pos || (POS_COMPAT[pos] || []).includes(p.position)))
+      .sort((a, b) => {
+        // Exact position match first, then by overall
+        const aExact = a.position === pos ? 1 : 0;
+        const bExact = b.position === pos ? 1 : 0;
+        if (bExact !== aExact) return bExact - aExact;
+        return (b.overall || 0) - (a.overall || 0);
+      });
+    const pick = candidates[0] || null;
+    if (pick) used.add(pick.id);
+    return { position: pos, player: pick };
   });
+};
+
+// Position compatibility (who can play where)
+const POS_COMPAT = {
+  GOL: [],
+  ZAG: [],
+  LE: ["ME"],
+  LD: ["MD"],
+  VOL: ["MC"],
+  MC: ["VOL", "MEI"],
+  ME: ["PE", "LE"],
+  MD: ["PD", "LD"],
+  MEI: ["MC", "SA"],
+  PE: ["ME", "ATA"],
+  PD: ["MD", "ATA"],
+  SA: ["MEI", "ATA"],
+  ATA: ["SA", "PE", "PD"],
+};
+
+// Get all candidates for a position (for the dropdown)
+const getCandidates = (players, pos, excludeIds = []) => {
+  return players
+    .filter(p => !excludeIds.includes(p.id) && (p.position === pos || (POS_COMPAT[pos] || []).includes(p.position)))
+    .sort((a, b) => {
+      const aExact = a.position === pos ? 1 : 0;
+      const bExact = b.position === pos ? 1 : 0;
+      if (bExact !== aExact) return bExact - aExact;
+      return (b.overall || 0) - (a.overall || 0);
+    });
 };
 
 const FORMATIONS = {
   "4-3-3": ["GOL","LD","ZAG","ZAG","LE","VOL","MC","MC","PD","ATA","PE"],
   "4-4-2": ["GOL","LD","ZAG","ZAG","LE","MD","MC","MC","ME","ATA","ATA"],
   "4-2-3-1": ["GOL","LD","ZAG","ZAG","LE","VOL","VOL","PD","MEI","PE","ATA"],
+  "4-4-1-1": ["GOL","LD","ZAG","ZAG","LE","MD","MC","MC","ME","SA","ATA"],
+  "4-1-2-1-2": ["GOL","LD","ZAG","ZAG","LE","VOL","MC","MC","MEI","ATA","ATA"],
   "3-5-2": ["GOL","ZAG","ZAG","ZAG","LD","MC","VOL","ME","MEI","ATA","ATA"],
-  "4-1-4-1": ["GOL","LD","ZAG","ZAG","LE","VOL","MD","MC","MC","ME","ATA"],
   "3-4-3": ["GOL","ZAG","ZAG","ZAG","LD","MC","MC","LE","PD","ATA","PE"],
+  "3-4-2-1": ["GOL","ZAG","ZAG","ZAG","LD","MC","MC","LE","MEI","MEI","ATA"],
   "5-3-2": ["GOL","LD","ZAG","ZAG","ZAG","LE","MC","MC","MC","ATA","ATA"],
+  "5-2-1-2": ["GOL","LD","ZAG","ZAG","ZAG","LE","MC","MC","MEI","ATA","ATA"],
   "4-3-2-1": ["GOL","LD","ZAG","ZAG","LE","MC","MC","MC","MEI","MEI","ATA"],
+  "4-1-4-1": ["GOL","LD","ZAG","ZAG","LE","VOL","MD","MC","MC","ME","ATA"],
+  "4-5-1": ["GOL","LD","ZAG","ZAG","LE","MD","MC","VOL","MC","ME","ATA"],
+  "5-4-1": ["GOL","LD","ZAG","ZAG","ZAG","LE","MD","MC","MC","ME","ATA"],
 };
 
 const GAME_VERSIONS = ["EA FC 26", "EA FC 25", "EA FC 24", "FIFA 23"];
@@ -1471,6 +1515,183 @@ return(<div>
 </div>);
 }
 
+// ─── LINEUP PAGE (Escalação + Profundidade) ───
+function LineupPage({season,setSeason,toast}){
+const[formation,setFormation]=useState("4-3-3");
+const[customXI,setCustomXI]=useState({}); // {slotIndex: playerId} overrides
+const[pickingSlot,setPickingSlot]=useState(null); // which slot is being picked
+
+if(!season) return <EmptyState icon="📋" title="Sem temporada ativa" sub="Crie uma temporada primeiro"/>;
+if(season.players.length===0) return <EmptyState icon="👕" title="Elenco vazio" sub="Adicione jogadores primeiro"/>;
+
+const slots=FORMATIONS[formation]||FORMATIONS["4-3-3"];
+const autoXI=getBestXI(season.players,formation);
+
+// Apply custom overrides
+const finalXI=autoXI.map((slot,i)=>{
+if(customXI[i]){
+const customPlayer=season.players.find(p=>p.id===customXI[i]);
+if(customPlayer) return{...slot,player:customPlayer};
+}
+return slot;
+});
+
+const usedIds=finalXI.map(s=>s.player?.id).filter(Boolean);
+const avgOvr=finalXI.filter(s=>s.player).length>0?Math.round(finalXI.filter(s=>s.player).reduce((a,s)=>a+(s.player?.overall||0),0)/finalXI.filter(s=>s.player).length):0;
+
+// Bench: players not in XI, sorted by overall
+const bench=season.players.filter(p=>!usedIds.includes(p.id)).sort((a,b)=>(b.overall||0)-(a.overall||0));
+
+// Depth chart: count by position
+const allPositions=["GOL","ZAG","LE","LD","VOL","MC","ME","MD","MEI","PE","PD","SA","ATA"];
+const depth=allPositions.map(pos=>{
+const primary=season.players.filter(p=>p.position===pos);
+const compat=season.players.filter(p=>p.position!==pos&&(POS_COMPAT[pos]||[]).includes(p.position));
+return{pos,primary:primary.length,compat:compat.length,total:primary.length+compat.length,players:[...primary,...compat].sort((a,b)=>(b.overall||0)-(a.overall||0))};
+});
+
+// Formation visual layout (rows for display)
+const formationRows={
+"4-3-3":[["PE","ATA","PD"],["MC","VOL","MC"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"4-4-2":[["ATA","ATA"],["ME","MC","MC","MD"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"4-2-3-1":[["ATA"],["PE","MEI","PD"],["VOL","VOL"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"4-4-1-1":[["ATA"],["SA"],["ME","MC","MC","MD"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"4-1-2-1-2":[["ATA","ATA"],["MEI"],["MC","MC"],["VOL"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"3-5-2":[["ATA","ATA"],["MEI"],["ME","MC","VOL","LD"],["ZAG","ZAG","ZAG"],["GOL"]],
+"3-4-3":[["PE","ATA","PD"],["LE","MC","MC","LD"],["ZAG","ZAG","ZAG"],["GOL"]],
+"3-4-2-1":[["ATA"],["MEI","MEI"],["LE","MC","MC","LD"],["ZAG","ZAG","ZAG"],["GOL"]],
+"5-3-2":[["ATA","ATA"],["MC","MC","MC"],["LE","ZAG","ZAG","ZAG","LD"],["GOL"]],
+"5-2-1-2":[["ATA","ATA"],["MEI"],["MC","MC"],["LE","ZAG","ZAG","ZAG","LD"],["GOL"]],
+"4-3-2-1":[["ATA"],["MEI","MEI"],["MC","MC","MC"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"4-1-4-1":[["ATA"],["ME","MC","MC","MD"],["VOL"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"4-5-1":[["ATA"],["ME","MC","VOL","MC","MD"],["LE","ZAG","ZAG","LD"],["GOL"]],
+"5-4-1":[["ATA"],["ME","MC","MC","MD"],["LE","ZAG","ZAG","ZAG","LD"],["GOL"]],
+};
+
+// Map finalXI to visual grid — consume each slot in order matching position
+const rows=formationRows[formation]||formationRows["4-3-3"];
+let slotIdx=0;
+// Reorder finalXI to match visual rows (bottom to top = GK first)
+const flatVisual=[...rows].reverse().flat();
+const slotMap=[];
+const usedSlots=new Set();
+flatVisual.forEach(pos=>{
+// Find next unused slot in finalXI that matches this position
+for(let i=0;i<finalXI.length;i++){
+if(!usedSlots.has(i)&&finalXI[i].position===pos){usedSlots.add(i);slotMap.push(i);return;}
+}
+slotMap.push(-1);
+});
+
+return(<div>
+<div className="ph"><div className="pt">📋 Escalação</div><div className="ps">{formation} · OVR médio {avgOvr}</div></div>
+
+{/* Formation selector */}
+<div className="filter-scroll" style={{marginBottom:16}}>
+{Object.keys(FORMATIONS).map(f=><button key={f} className={`btn ${formation===f?"bp":"bg"} bs`} onClick={()=>{setFormation(f);setCustomXI({});}}>{f}</button>)}
+</div>
+
+{/* Visual Formation */}
+<div className="card" style={{padding:16,overflow:"hidden"}}>
+<div style={{display:"flex",flexDirection:"column",gap:6}}>
+{rows.map((row,ri)=>{
+return(<div key={ri} style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap"}}>
+{row.map((pos,ci)=>{
+// Find the corresponding slot index in finalXI
+const key=`${ri}-${ci}`;
+let si=-1;
+for(let i=0;i<finalXI.length;i++){
+if(finalXI[i].position===pos&&!document.querySelector(`[data-used-${i}]`)){
+// Simple matching by consuming slots in order per position
+const prevSamePos=row.slice(0,ci).filter(p2=>p2===pos).length;
+const allSamePos=finalXI.map((s,idx)=>({...s,idx})).filter(s=>s.position===pos);
+if(allSamePos[prevSamePos]){si=allSamePos[prevSamePos].idx;}
+break;
+}
+}
+// Fallback: find any matching unassigned
+if(si===-1){
+const allMatch=finalXI.map((s,idx)=>({...s,idx})).filter(s=>s.position===pos);
+const rowPrevCount=row.slice(0,ci).filter(p2=>p2===pos).length;
+const globalPrevCount=[...rows].flat().slice(0,[...rows].flat().indexOf(pos,
+[...rows].slice(0,ri).flat().length+ci
+)).filter(p2=>p2===pos).length;
+if(allMatch[globalPrevCount]) si=allMatch[globalPrevCount].idx;
+else if(allMatch[0]) si=allMatch[0].idx;
+}
+const slot=si>=0?finalXI[si]:null;
+const player=slot?.player;
+const isEmptySlot=!player;
+
+return(<div key={ci} onClick={()=>setPickingSlot(si>=0?si:null)}
+style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"6px 4px",borderRadius:10,background:pickingSlot===si?"var(--accent-glow)":"transparent",transition:"all .15s",minWidth:56,maxWidth:72}}>
+<div style={{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,fontFamily:"'Outfit'",border:`2px solid ${isEmptySlot?"var(--border2)":ratingColor(player?.overall||0)}`,color:isEmptySlot?"var(--text3)":ratingColor(player?.overall||0),background:isEmptySlot?"var(--bg3)":`${ratingColor(player?.overall||0)}12`,transition:"all .2s"}}>{isEmptySlot?"?":player.overall}</div>
+<div style={{fontSize:9,fontWeight:700,color:"var(--accent)",textTransform:"uppercase",letterSpacing:.5}}>{pos}</div>
+<div style={{fontSize:10,fontWeight:600,color:isEmptySlot?"var(--text3)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:70,textAlign:"center"}}>{isEmptySlot?"—":player.name.split(" ").pop()}</div>
+</div>);
+})}
+</div>);
+})}
+</div>
+</div>
+
+{/* Player picker modal */}
+{pickingSlot!==null&&pickingSlot>=0&&<Modal title={`Escolher: ${finalXI[pickingSlot]?.position}`} onClose={()=>setPickingSlot(null)}>
+<div style={{fontSize:12,color:"var(--text3)",marginBottom:10}}>Selecione quem joga de <strong style={{color:"var(--accent)"}}>{finalXI[pickingSlot]?.position}</strong></div>
+{/* Auto option */}
+<div onClick={()=>{setCustomXI(prev=>{const n={...prev};delete n[pickingSlot];return n;});setPickingSlot(null);toast("Automático");}}
+style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderBottom:"1px solid var(--border)",cursor:"pointer",borderRadius:8,background:!customXI[pickingSlot]?"var(--accent-glow)":"transparent"}}>
+<div style={{width:32,height:32,borderRadius:8,background:"var(--bg4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"var(--text3)"}}>⚡</div>
+<div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:"var(--accent)"}}>Automático (melhor OVR)</div></div>
+</div>
+{getCandidates(season.players,finalXI[pickingSlot]?.position,usedIds.filter(id=>id!==finalXI[pickingSlot]?.player?.id)).map(p=>(
+<div key={p.id} onClick={()=>{setCustomXI(prev=>({...prev,[pickingSlot]:p.id}));setPickingSlot(null);toast(`${p.name} escalado`);}}
+style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderBottom:"1px solid var(--border)",cursor:"pointer",background:customXI[pickingSlot]===p.id?"var(--accent-glow)":"transparent"}}>
+<OvrBadge value={p.overall} size={32}/>
+<div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+<div style={{fontSize:13,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+<div style={{fontSize:10,color:"var(--text3)"}}>{p.position}{p.position!==finalXI[pickingSlot]?.position?" (adaptado)":""} · {p.age} anos</div>
+</div>
+</div>))}
+{getCandidates(season.players,finalXI[pickingSlot]?.position,[]).length===0&&<div style={{padding:20,textAlign:"center",color:"var(--text3)",fontSize:13}}>Nenhum jogador compatível com esta posição</div>}
+<div className="ma"><button className="btn bg" onClick={()=>setPickingSlot(null)}>Fechar</button></div>
+</Modal>}
+
+{/* Bench */}
+{bench.length>0&&<div className="card">
+<div className="ct">🪑 Banco & Reservas ({bench.length})</div>
+<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+{bench.map(p=>(
+<div key={p.id} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,background:"var(--bg3)",border:"1px solid var(--border)",fontSize:12}}>
+<span style={{fontWeight:700,color:ratingColor(p.overall),fontFamily:"'Outfit'"}}>{p.overall}</span>
+<span style={{color:"var(--text)",fontWeight:500,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+<span style={{fontSize:9,color:"var(--text3)"}}>{p.position}</span>
+</div>))}
+</div>
+</div>}
+
+{/* Depth Chart */}
+<div className="card">
+<div className="ct">📊 Profundidade por Posição</div>
+<div style={{display:"flex",flexDirection:"column",gap:6}}>
+{depth.map(d=>{
+const status=d.primary===0?"var(--red)":d.primary===1?"var(--yellow)":"var(--green)";
+return(<div key={d.pos} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:"1px solid var(--border)"}}>
+<span style={{fontSize:11,fontWeight:700,color:"var(--accent)",width:30,textAlign:"center",fontFamily:"'Outfit'"}}>{d.pos}</span>
+<div style={{flex:1,display:"flex",gap:3}}>
+{d.players.slice(0,5).map((p,i)=>(
+<div key={p.id} style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:600,background:i<d.primary?"var(--accent-glow)":"var(--bg4)",color:i<d.primary?"var(--accent)":"var(--text3)",border:`1px solid ${i<d.primary?"var(--accent)":"var(--border)"}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:80}}>
+{p.overall} {p.name.split(" ").pop()}
+</div>))}
+{d.total===0&&<span style={{fontSize:10,color:"var(--red)",fontWeight:600}}>Sem jogadores!</span>}
+</div>
+<div style={{width:8,height:8,borderRadius:4,background:status,flexShrink:0}}/>
+</div>);})}
+</div>
+</div>
+</div>);
+}
+
 // ─── SETTINGS PAGE ───
 function SettingsPage({data,setData,toast,goTo}){
 const[saveModal,setSaveModal]=useState(false);
@@ -1830,6 +2051,7 @@ const nav=[
 {id:"dashboard",label:"Painel",icon:I.home},
 {id:"matches",label:"Partidas",icon:I.match,badge:activeSeason?.matches.length||null},
 {id:"squad",label:"Elenco",icon:I.squad,badge:activeSeason?.players.length||null},
+{id:"lineup",label:"Escalação",icon:I.formation},
 {id:"transfers",label:"Transferências",icon:I.transfer},
 {id:"trophies",label:"Títulos",icon:I.trophy},
 {id:"stats",label:"Estatísticas",icon:I.stats},
@@ -1883,6 +2105,7 @@ return(<><style>{getCSS(tv,myAccent)}</style><div className="app">
 {page==="dashboard"&&<Dashboard save={activeSave} season={activeSeason} goTo={go} allSeasons={allSeasons} setSeason={setSeason} toast={toast}/>}
 {page==="matches"&&<MatchesPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config}/>}
 {page==="squad"&&<SquadPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config}/>}
+{page==="lineup"&&<LineupPage season={activeSeason} setSeason={setSeason} toast={toast}/>}
 {page==="transfers"&&<TransfersPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config}/>}
 {page==="trophies"&&<TrophiesPage season={activeSeason} setSeason={setSeason} toast={toast} config={data.config} allSeasons={allSeasons}/>}
 {page==="stats"&&<StatsPage season={activeSeason} allSeasons={allSeasons}/>}
