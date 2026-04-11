@@ -1914,7 +1914,7 @@ const dismiss=()=>{setShow(false);setDismissed(true);try{localStorage.setItem("k
 if(!show||installed)return null;
 return(<div className="m-only" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:250,padding:12,display:"flex"}}>
 <div style={{background:"linear-gradient(135deg,#0E1420,#0A1018)",border:"1px solid #1A2A3A",borderRadius:14,padding:16,width:"100%",maxWidth:480,margin:"0 auto",boxShadow:"0 -4px 32px rgba(0,0,0,.5)",display:"flex",alignItems:"center",gap:14}}>
-<svg width="40" height="40" viewBox="0 0 64 64" fill="none" style={{flexShrink:0}}><circle cx="32" cy="32" r="22" stroke="#22D3EE" strokeWidth="2" opacity="0.3"/><path d="M38 8L26 30H32L24 56L44 28H36L38 8Z" fill="#22D3EE" opacity="0.9"/><path d="M27 27L29 23L31 27L29 31Z" fill="#22D3EE"/></svg>
+<img src="/logo-200.png" alt="Kronex" style={{width:40,height:40,objectFit:"contain",flexShrink:0,filter:"drop-shadow(0 0 8px rgba(34,211,238,0.2))"}}/>
 <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,color:"#E0F0F8",marginBottom:3}}>Instalar Kronex</div><div style={{fontSize:11,color:"#4A6A80",lineHeight:1.4}}>{isIOS?"Toque em compartilhar ↑ e \"Adicionar à Tela de Início\"":"Instale como app no seu celular!"}</div></div>
 <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
 {!isIOS&&prompt&&<button onClick={()=>{doInstall();setShow(false);}} style={{padding:"8px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#22D3EE,#0891B2)",color:"#000",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Instalar</button>}
