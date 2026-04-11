@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { LOGO_SM } from "./logo";
+import { LOGO_SVG } from "./logo";
 
 // ─── Persistence (keyed per user) ───
 const getKey = (uid) => `kronex-data-${uid||"anon"}`;
@@ -1915,7 +1915,7 @@ const dismiss=()=>{setShow(false);setDismissed(true);try{localStorage.setItem("k
 if(!show||installed)return null;
 return(<div className="m-only" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:250,padding:12,display:"flex"}}>
 <div style={{background:"linear-gradient(135deg,#0E1420,#0A1018)",border:"1px solid #1A2A3A",borderRadius:14,padding:16,width:"100%",maxWidth:480,margin:"0 auto",boxShadow:"0 -4px 32px rgba(0,0,0,.5)",display:"flex",alignItems:"center",gap:14}}>
-<img src={LOGO_SM} alt="Kronex" style={{width:40,height:40,objectFit:"contain",flexShrink:0}}/>
+<img src={LOGO_SVG} alt="Kronex" style={{width:40,height:40,objectFit:"contain",flexShrink:0}}/>
 <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,color:"#E0F0F8",marginBottom:3}}>Instalar Kronex</div><div style={{fontSize:11,color:"#4A6A80",lineHeight:1.4}}>{isIOS?"Toque em compartilhar ↑ e \"Adicionar à Tela de Início\"":"Instale como app no seu celular!"}</div></div>
 <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
 {!isIOS&&prompt&&<button onClick={()=>{doInstall();setShow(false);}} style={{padding:"8px 16px",borderRadius:8,fontSize:12,fontWeight:700,border:"none",cursor:"pointer",background:"linear-gradient(135deg,#22D3EE,#0891B2)",color:"#000",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Instalar</button>}
