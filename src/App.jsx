@@ -319,6 +319,9 @@ input,select,textarea{font-size:16px;padding:10px 10px;max-width:100%;box-sizing
 /* Fix all flex children from overflowing */
 .player-row>div{min-width:0;overflow:hidden}
 .player-row>div>div{overflow:hidden;text-overflow:ellipsis}
+/* Global mobile overflow safety net */
+.card>div{max-width:100%;overflow-x:hidden}
+.card>div>div{max-width:100%}
 }
 @media(max-width:768px){.m-only{display:flex}.d-only{display:none}}
 @media(min-width:769px){.m-only{display:none}.d-only{display:block}}
@@ -661,7 +664,7 @@ const done=achs.filter(a=>a.done).length;
 if(achs.length===0)return null;
 return(<div className="card">
 <div className="ct">🏅 Conquistas <span style={{marginLeft:"auto",fontSize:12,color:"var(--text3)"}}>{done} desbloqueadas</span></div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:8,overflow:"hidden"}}>
 {achs.map((a,i)=>(
 <div key={i} style={{padding:10,borderRadius:10,background:a.done?"var(--accent-glow)":"var(--bg3)",border:`1px solid ${a.done?"var(--accent)":"var(--border)"}`,textAlign:"center",opacity:a.done?1:.5,transition:"all .2s"}}>
 <div style={{fontSize:24,marginBottom:4}}>{a.icon}</div>
@@ -1660,12 +1663,12 @@ style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderBott
 {/* Bench */}
 {bench.length>0&&<div className="card">
 <div className="ct">🪑 Banco & Reservas ({bench.length})</div>
-<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+<div style={{display:"flex",flexWrap:"wrap",gap:6,overflow:"hidden",maxWidth:"100%"}}>
 {bench.map(p=>(
-<div key={p.id} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,background:"var(--bg3)",border:"1px solid var(--border)",fontSize:12}}>
-<span style={{fontWeight:700,color:ratingColor(p.overall),fontFamily:"'Outfit'"}}>{p.overall}</span>
-<span style={{color:"var(--text)",fontWeight:500,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-<span style={{fontSize:9,color:"var(--text3)"}}>{p.position}</span>
+<div key={p.id} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 8px",borderRadius:8,background:"var(--bg3)",border:"1px solid var(--border)",fontSize:11,overflow:"hidden",maxWidth:"45%",boxSizing:"border-box"}}>
+<span style={{fontWeight:700,color:ratingColor(p.overall),fontFamily:"'Outfit'",flexShrink:0}}>{p.overall}</span>
+<span style={{color:"var(--text)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{p.name}</span>
+<span style={{fontSize:9,color:"var(--text3)",flexShrink:0}}>{p.position}</span>
 </div>))}
 </div>
 </div>}
@@ -1673,14 +1676,14 @@ style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderBott
 {/* Depth Chart */}
 <div className="card">
 <div className="ct">📊 Profundidade por Posição</div>
-<div style={{display:"flex",flexDirection:"column",gap:6}}>
+<div style={{display:"flex",flexDirection:"column",gap:6,overflow:"hidden"}}>
 {depth.map(d=>{
 const status=d.primary===0?"var(--red)":d.primary===1?"var(--yellow)":"var(--green)";
-return(<div key={d.pos} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:"1px solid var(--border)"}}>
-<span style={{fontSize:11,fontWeight:700,color:"var(--accent)",width:30,textAlign:"center",fontFamily:"'Outfit'"}}>{d.pos}</span>
-<div style={{flex:1,display:"flex",gap:3}}>
-{d.players.slice(0,5).map((p,i)=>(
-<div key={p.id} style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:600,background:i<d.primary?"var(--accent-glow)":"var(--bg4)",color:i<d.primary?"var(--accent)":"var(--text3)",border:`1px solid ${i<d.primary?"var(--accent)":"var(--border)"}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:80}}>
+return(<div key={d.pos} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid var(--border)",overflow:"hidden"}}>
+<span style={{fontSize:11,fontWeight:700,color:"var(--accent)",width:28,textAlign:"center",fontFamily:"'Outfit'",flexShrink:0}}>{d.pos}</span>
+<div style={{flex:1,display:"flex",gap:3,overflow:"hidden",flexWrap:"wrap",minWidth:0}}>
+{d.players.slice(0,4).map((p,i)=>(
+<div key={p.id} style={{padding:"2px 6px",borderRadius:6,fontSize:9,fontWeight:600,background:i<d.primary?"var(--accent-glow)":"var(--bg4)",color:i<d.primary?"var(--accent)":"var(--text3)",border:`1px solid ${i<d.primary?"var(--accent)":"var(--border)"}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:70}}>
 {p.overall} {p.name.split(" ").pop()}
 </div>))}
 {d.total===0&&<span style={{fontSize:10,color:"var(--red)",fontWeight:600}}>Sem jogadores!</span>}
@@ -1919,78 +1922,107 @@ return(<div className="m-only" style={{position:"fixed",bottom:0,left:0,right:0,
 </div></div></div>);
 }
 
-// ─── Welcome Tour ───
-function WelcomeTour({onFinish}){
-const[step,setStep]=useState(0);
+// ─── GUIDED ONBOARDING (step-by-step, action-driven) ───
+function GuidedOnboarding({onFinish,goTo,hasSave,hasSeason,hasPlayers}){
+// Determine which step user is on based on their actual progress
+const currentStep=!hasSave?0:!hasSeason?1:!hasPlayers?2:3;
 const steps=[
-{icon:"🏟️",title:"Bem-vindo ao Kronex!",desc:"Seu tracker definitivo de modo carreira EA FC. Registre partidas, gerencie elencos e acompanhe sua evolução."},
-{icon:"🎮",title:"Crie um Save",desc:"Vá em Configurações e crie seu primeiro save. Cada save pode ter múltiplas temporadas e times diferentes."},
-{icon:"⚽",title:"Registre Partidas",desc:"Na aba Partidas, registre cada jogo com placar, adversário, competição e Man of the Match. Rápido e fácil!"},
-{icon:"👕",title:"Monte seu Elenco",desc:"Adicione jogadores com overall, potencial, estatísticas. Compare jogadores lado a lado."},
-{icon:"📊",title:"Acompanhe Tudo",desc:"Estatísticas, transferências, títulos, base de jovens, recordes e timeline da carreira. Tudo num lugar só!"},
+{icon:"🎮",title:"Criar um Save",desc:"Seu save é como um arquivo de jogo. Dê um nome (ex: 'Carreira Arsenal'), escolha a versão do jogo e a dificuldade.",action:"Criar Save",target:"settings",done:hasSave},
+{icon:"📅",title:"Criar uma Temporada",desc:"Dentro do save, crie sua primeira temporada. Escolha o time — se digitar o nome, o Kronex importa o elenco completo do FC 26 automaticamente!",action:"Nova Temporada",target:"settings",done:hasSeason},
+{icon:"👕",title:"Montar o Elenco",desc:"Se importou do FC 26, seu elenco já está pronto! Se não, use a busca rápida pra adicionar jogadores. Tudo é editável depois.",action:"Ver Elenco",target:"squad",done:hasPlayers},
+{icon:"⚽",title:"Registrar Partidas",desc:"Depois de cada jogo, registre o resultado. Toque nos jogadores que marcaram gol — os stats atualizam sozinhos!",action:"Ir pra Partidas",target:"matches",done:false},
 ];
-const s=steps[step];
-return(<div className="mo" onClick={onFinish}><div className="md" onClick={e=>e.stopPropagation()} style={{maxWidth:400,textAlign:"center",padding:32}}>
-<div style={{fontSize:52,marginBottom:16}}>{s.icon}</div>
-<div style={{fontSize:20,fontWeight:800,fontFamily:"'Outfit',sans-serif",marginBottom:8,color:"var(--text)"}}>{s.title}</div>
-<div style={{fontSize:14,color:"var(--text2)",lineHeight:1.7,marginBottom:24}}>{s.desc}</div>
-<div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:20}}>{steps.map((_,i)=><div key={i} style={{width:8,height:8,borderRadius:4,background:i===step?"var(--accent)":"var(--bg4)",transition:"all .2s"}}/>)}</div>
-<div style={{display:"flex",gap:10}}>
-{step>0&&<button className="btn bg" onClick={()=>setStep(step-1)} style={{flex:1}}>Anterior</button>}
-{step<steps.length-1?<button className="btn bp" onClick={()=>setStep(step+1)} style={{flex:1}}>Próximo</button>:
-<button className="btn bp" onClick={onFinish} style={{flex:1}}>Começar! 🚀</button>}
+const step=steps[currentStep];
+const progress=((currentStep)/steps.length)*100;
+
+return(<div className="mo" onClick={onFinish}>
+<div className="md" onClick={e=>e.stopPropagation()} style={{maxWidth:420,padding:"24px 20px",textAlign:"center",overflow:"hidden",boxSizing:"border-box"}}>
+{/* Progress bar */}
+<div style={{display:"flex",gap:4,marginBottom:20}}>
+{steps.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<=currentStep?"var(--accent)":"var(--bg4)",transition:"all .3s"}}/>)}
 </div>
-</div></div>);
+
+<div style={{fontSize:48,marginBottom:12}}>{step.icon}</div>
+<div style={{fontSize:11,color:"var(--accent)",textTransform:"uppercase",letterSpacing:2,fontWeight:700,marginBottom:4}}>Passo {currentStep+1} de {steps.length}</div>
+<div style={{fontSize:20,fontWeight:800,fontFamily:"'Outfit',sans-serif",marginBottom:8,color:"var(--text)"}}>{step.title}</div>
+<div style={{fontSize:13,color:"var(--text2)",lineHeight:1.7,marginBottom:20,padding:"0 8px"}}>{step.desc}</div>
+
+{step.done?
+<div style={{padding:12,borderRadius:10,background:"var(--green-bg)",color:"var(--green)",fontSize:13,fontWeight:600,marginBottom:12}}>✓ Concluído!</div>:
+<button className="btn bp" onClick={()=>{goTo(step.target);onFinish();}} style={{width:"100%",fontSize:15,padding:14}}>{step.action}</button>
+}
+
+<div style={{display:"flex",gap:8,marginTop:12,justifyContent:"center"}}>
+{currentStep===steps.length-1||step.done?
+<button className="btn bg" onClick={onFinish} style={{flex:1}}>Fechar</button>:
+<button onClick={onFinish} style={{background:"none",border:"none",color:"var(--text3)",cursor:"pointer",fontSize:12,fontFamily:"'DM Sans'",padding:8}}>Pular tutorial</button>
+}
+</div>
+</div>
+</div>);
 }
 
 // ─── Help Page ───
-function HelpPage({goTo}){
+function HelpPage({goTo,onStartTour}){
 return(<div>
 <div className="ph"><div className="pt">❓ Ajuda</div><div className="ps">Como usar o Kronex</div></div>
 
-<div className="card" style={{background:"var(--accent-glow)",borderColor:"var(--accent)"}}>
-<div className="ct" style={{color:"var(--accent)",fontSize:18}}>🚀 Primeiros Passos</div>
-<div style={{fontSize:14,color:"var(--text2)",lineHeight:2}}>
-<strong style={{color:"var(--text)"}}>1.</strong> Vá em <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("settings")}>Configurações</span> e crie um <strong>Save</strong> (ex: "Carreira Arsenal")<br/>
-<strong style={{color:"var(--text)"}}>2.</strong> Crie uma <strong>Temporada</strong> dentro do save (escolha time, liga, ano)<br/>
-<strong style={{color:"var(--text)"}}>3.</strong> Vá em <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("squad")}>Elenco</span> e adicione seus jogadores<br/>
-<strong style={{color:"var(--text)"}}>4.</strong> Registre cada jogo em <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("matches")}>Partidas</span> — placar, MOTM, goleadores<br/>
-<strong style={{color:"var(--text)"}}>5.</strong> Acompanhe tudo no <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("dashboard")}>Painel</span><br/>
-<strong style={{color:"var(--text)"}}>6.</strong> Ao final da temporada, registre <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("trophies")}>Títulos</span> e crie nova temporada
+{/* Replay tutorial button */}
+<div className="card" style={{background:"var(--accent-glow)",borderColor:"var(--accent)",display:"flex",alignItems:"center",gap:12,cursor:"pointer",overflow:"hidden"}} onClick={onStartTour}>
+<div style={{fontSize:32,flexShrink:0}}>🚀</div>
+<div style={{flex:1,minWidth:0}}>
+<div style={{fontSize:15,fontWeight:700,color:"var(--accent)"}}>Iniciar Tutorial Guiado</div>
+<div style={{fontSize:12,color:"var(--text2)"}}>Passo a passo pra configurar sua carreira</div>
+</div>
+<span style={{color:"var(--accent)",flexShrink:0}}>→</span>
+</div>
+
+<div className="card">
+<div className="ct">📖 Primeiros Passos</div>
+<div style={{fontSize:13,color:"var(--text2)",lineHeight:2}}>
+<strong style={{color:"var(--text)"}}>1.</strong> Vá em <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("settings")}>Configurações</span> e crie um <strong>Save</strong><br/>
+<strong style={{color:"var(--text)"}}>2.</strong> Crie uma <strong>Temporada</strong> — digite o time e importe o elenco do FC 26<br/>
+<strong style={{color:"var(--text)"}}>3.</strong> Vá em <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("squad")}>Elenco</span> — seus jogadores já estão lá<br/>
+<strong style={{color:"var(--text)"}}>4.</strong> Registre jogos em <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("matches")}>Partidas</span> — toque nos goleadores<br/>
+<strong style={{color:"var(--text)"}}>5.</strong> Veja a <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("lineup")}>Escalação</span> automática com profundidade<br/>
+<strong style={{color:"var(--text)"}}>6.</strong> Acompanhe tudo no <span style={{color:"var(--accent)",cursor:"pointer",textDecoration:"underline"}} onClick={()=>goTo("dashboard")}>Painel</span>
 </div>
 </div>
 
 <div className="card">
 <div className="ct">❓ Perguntas Frequentes</div>
-<div style={{display:"flex",flexDirection:"column",gap:16}}>
+<div style={{display:"flex",flexDirection:"column",gap:14}}>
 {[
-{q:"Como troco de time na mesma carreira?",a:"Crie uma nova temporada em Configurações com o novo time. O histórico anterior é preservado — você vê tudo nos Recordes e Timeline."},
-{q:"Posso ter mais de uma carreira?",a:"Sim! Crie múltiplos saves em Configurações. Cada um é independente com suas próprias temporadas."},
-{q:"Como funciona o comparador de jogadores?",a:"No Elenco, clique no ícone de gráfico ao lado de 2 jogadores. O botão 'Comparar' aparece na toolbar."},
-{q:"O que é a Base / Academia?",a:"Lá você registra jovens da youth academy com ranges de overall e potencial. Quando estiverem prontos, promova ao elenco principal com um clique."},
-{q:"Meus dados estão seguros?",a:"Sim! Seus dados são salvos na nuvem (Firebase) vinculados à sua conta. Também ficam em cache local para acesso rápido."},
-{q:"Como instalo no celular?",a:"No Android: o app oferece instalar automaticamente, ou vá nos 3 pontinhos do navegador → 'Instalar app'. No iPhone: Safari → botão compartilhar → 'Adicionar à Tela de Início'."},
-{q:"Posso mudar o visual do app?",a:"Sim! Configurações → Aparência. Tem 6 temas e 12 cores de destaque."},
-].map((faq,i)=>(<div key={i}><div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:4}}>{faq.q}</div><div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6}}>{faq.a}</div></div>))}
+{q:"Como importo o elenco do jogo?",a:"Ao criar uma temporada, digite o nome do time. O Kronex busca na base do FC 26 (18.000+ jogadores) e importa o elenco completo. Tudo editável depois."},
+{q:"Como registro gols rápido?",a:"No modal de Novo Jogo, aparecem botões com os nomes dos seus jogadores. Toque no goleador → +1 gol. Os stats do jogador atualizam sozinhos."},
+{q:"Como troco de time na mesma carreira?",a:"Crie uma nova temporada com o novo time. O histórico anterior é preservado nos Recordes e Timeline."},
+{q:"O que é a Escalação automática?",a:"Na aba Escalação, o Kronex monta o melhor XI baseado nos overalls. Toque em qualquer posição pra trocar. Veja a profundidade do elenco abaixo."},
+{q:"Posso ter mais de uma carreira?",a:"Sim! Crie múltiplos saves em Configurações. Cada um é independente."},
+{q:"Como funciona o comparador?",a:"No Elenco, toque no ícone de gráfico ao lado de 2 jogadores. O botão Comparar aparece."},
+{q:"Como copio o elenco pra próxima temporada?",a:"Ao criar nova temporada com o mesmo time, ative 'Copiar elenco'. As idades aumentam +1 e os stats zeram."},
+{q:"Meus dados estão seguros?",a:"Sim! Salvos na nuvem (Firebase) vinculados à sua conta Google."},
+{q:"Como instalo no celular?",a:"Android: 3 pontinhos → Instalar app. iPhone: Safari → Compartilhar → Adicionar à Tela de Início."},
+].map((faq,i)=>(<div key={i} style={{overflow:"hidden"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)",marginBottom:3}}>{faq.q}</div><div style={{fontSize:12,color:"var(--text2)",lineHeight:1.6}}>{faq.a}</div></div>))}
 </div>
 </div>
 
 <div className="card">
 <div className="ct">📖 Seções do App</div>
-<div style={{display:"flex",flexDirection:"column",gap:12}}>
+<div style={{display:"flex",flexDirection:"column",gap:10}}>
 {[
-{icon:"📊",name:"Painel",desc:"Dashboard com stats gerais, forma recente, destaques do elenco e sequências",id:"dashboard"},
-{icon:"⚽",name:"Partidas",desc:"Registre jogos com placar, competição, local (casa/fora), Man of the Match e goleadores",id:"matches"},
-{icon:"👕",name:"Elenco",desc:"Gerencie jogadores com overall, potencial, estatísticas, posição. Compare jogadores lado a lado",id:"squad"},
-{icon:"🔄",name:"Transferências",desc:"Registre compras, vendas, empréstimos com valores. Veja o saldo da janela",id:"transfers"},
-{icon:"🏆",name:"Títulos",desc:"Registre troféus conquistados. Vitrine visual com todos os títulos da carreira",id:"trophies"},
-{icon:"📈",name:"Estatísticas",desc:"Aproveitamento por competição, artilheiros, garçons, jogadores mais decisivos",id:"stats"},
-{icon:"🌱",name:"Base",desc:"Youth academy: monitore jovens, ranges de OVR/POT, promova ao elenco principal",id:"youth"},
-{icon:"⭐",name:"Recordes",desc:"Hall da fama, maior artilheiro, mais assistências, maior goleada, timeline completa",id:"records"},
-].map(s=>(<div key={s.id} style={{display:"flex",gap:12,alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick={()=>goTo(s.id)}>
-<span style={{fontSize:24}}>{s.icon}</span>
-<div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:"var(--text)"}}>{s.name}</div><div style={{fontSize:12,color:"var(--text3)"}}>{s.desc}</div></div>
-<span style={{fontSize:12,color:"var(--accent)"}}>→</span>
+{icon:"📊",name:"Painel",desc:"Dashboard com stats, forma recente, destaques, objetivos, diário e conquistas",id:"dashboard"},
+{icon:"⚽",name:"Partidas",desc:"Registre jogos com goleadores por toque, assistências e MOTM automático",id:"matches"},
+{icon:"👕",name:"Elenco",desc:"Busca rápida FC 26 com 18.000+ jogadores. Compare lado a lado",id:"squad"},
+{icon:"📋",name:"Escalação",desc:"Melhor XI automático, 14 formações, troque jogadores por posição, profundidade",id:"lineup"},
+{icon:"🔄",name:"Transferências",desc:"Compras, vendas, empréstimos com saldo da janela",id:"transfers"},
+{icon:"🏆",name:"Títulos",desc:"Vitrine de troféus da carreira inteira",id:"trophies"},
+{icon:"📈",name:"Estatísticas",desc:"Aproveitamento por competição, artilheiros, garçons, decisivos",id:"stats"},
+{icon:"🌱",name:"Base",desc:"Youth academy com promoção ao time principal",id:"youth"},
+{icon:"⭐",name:"Recordes",desc:"Hall da fama, timeline, maior artilheiro all-time",id:"records"},
+].map(s=>(<div key={s.id} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--border)",cursor:"pointer",overflow:"hidden"}} onClick={()=>goTo(s.id)}>
+<span style={{fontSize:20,flexShrink:0}}>{s.icon}</span>
+<div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{s.name}</div><div style={{fontSize:11,color:"var(--text3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.desc}</div></div>
+<span style={{fontSize:11,color:"var(--accent)",flexShrink:0}}>→</span>
 </div>))}
 </div>
 </div>
@@ -2044,6 +2076,7 @@ const tv=THEMES[myTheme]||THEMES.midnight;
 
 const go=(id)=>{setPage(id);setSo(false);};
 const finishTour=()=>{setShowTour(false);try{localStorage.setItem(`kronex-tour-${uid}`,"1");}catch{}};
+const startTour=()=>setShowTour(true);
 
 const userName=user?.displayName||user?.email?.split("@")[0]||"Treinador";
 
@@ -2111,12 +2144,12 @@ return(<><style>{getCSS(tv,myAccent)}</style><div className="app">
 {page==="stats"&&<StatsPage season={activeSeason} allSeasons={allSeasons}/>}
 {page==="youth"&&<YouthPage season={activeSeason} setSeason={setSeason} toast={toast}/>}
 {page==="records"&&<RecordsPage allSeasons={allSeasons} save={activeSave}/>}
-{page==="help"&&<HelpPage goTo={go}/>}
+{page==="help"&&<HelpPage goTo={go} onStartTour={startTour}/>}
 {page==="settings"&&<SettingsPage data={data} setData={setData} toast={toast} goTo={go}/>}
 </main>
 </div>
 {page==="matches"&&activeSeason&&<FAB onAdd={()=>{}}/>}
-{showTour&&<WelcomeTour onFinish={finishTour}/>}
+{showTour&&<GuidedOnboarding onFinish={finishTour} goTo={go} hasSave={!!activeSave} hasSeason={!!activeSeason} hasPlayers={activeSeason?.players?.length>0}/>}
 <InstallBanner installHook={installHook}/>
 <Toast message={tm} onUndo={undoRef.current?doUndo:null}/>
 </>);
