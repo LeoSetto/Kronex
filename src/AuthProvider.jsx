@@ -9,14 +9,12 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, googleProvider, db } from "./firebase";
-import { LOGO_SM } from "./logo";
+import { LOGO_SVG } from "./logo";
 
-// Kronex logo component
 export const KronexLogo = ({ size = 80 }) => (
-  <img src={LOGO_SM} alt="Kronex" style={{ width: size, height: size, objectFit: "contain" }} />
+  <img src={LOGO_SVG} alt="Kronex" style={{ width: size, height: size, objectFit: "contain" }} />
 );
 
-// Firestore helpers
 export async function saveUserData(uid, data) {
   try { await setDoc(doc(db, "kronex_users", uid, "data", "main"), { ...data, updatedAt: new Date().toISOString() }); } catch (e) { console.error("Erro ao salvar:", e); }
 }
@@ -98,7 +96,7 @@ export default function AuthProvider({ children }) {
       <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#080C12",fontFamily:"'Outfit',sans-serif",padding:16}}>
       <div style={{background:"#0E1420",border:"1px solid #1A2A3A",borderRadius:16,padding:"32px 24px",width:"100%",maxWidth:420,textAlign:"center"}}>
 
-        <div style={{marginBottom:16,animation:"logoFloat 3s ease-in-out infinite"}}><KronexLogo size={64}/></div>
+        <div style={{marginBottom:16,animation:"logoFloat 3s ease-in-out infinite"}}><KronexLogo size={72}/></div>
         <div style={{fontFamily:"'Outfit'",fontSize:32,fontWeight:900,background:"linear-gradient(135deg,#22D3EE,#0EA5E9)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",letterSpacing:-1,textTransform:"uppercase"}}>Kronex</div>
         <div style={{fontSize:11,color:"#4A6A80",textTransform:"uppercase",letterSpacing:4,marginBottom:28}}>career mode tracker</div>
 
