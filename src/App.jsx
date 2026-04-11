@@ -1049,7 +1049,8 @@ toast(`${p.n} (${p.o} OVR) adicionado!`);
 <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
 <span className="tg tg-ac" style={{fontSize:10}}>{p.position}</span>
 {p.age>0&&<span style={{fontSize:11,color:"var(--text3)"}}>{p.age} anos</span>}
-{p.potential>p.overall&&<span style={{fontSize:11,color:"var(--green)"}}>↑{p.potential}</span>}
+{p.potential>p.overall&&<span style={{fontSize:10,color:"var(--green)",fontWeight:600}}>POT {p.potential}</span>}
+{p.potential>0&&p.potential===p.overall&&<span style={{fontSize:10,color:"var(--text3)"}}>POT {p.potential}</span>}
 </div>
 </div>
 <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
