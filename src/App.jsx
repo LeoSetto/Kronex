@@ -280,6 +280,169 @@ input,select,textarea{font-size:16px;padding:10px 10px;max-width:100%;box-sizing
 @media(min-width:769px){.m-only{display:none}.d-only{display:block}}
 `;
 
+// ─── FC26 Database (lazy loaded from /data/fc26.json) ───
+let _fc26Cache = null;
+async function loadFC26() {
+  if (_fc26Cache) return _fc26Cache;
+  try {
+    const res = await fetch('/data/fc26.json');
+    if (!res.ok) return null;
+    _fc26Cache = await res.json();
+    return _fc26Cache;
+  } catch { return null; }
+}
+
+function useFC26() {
+  const [db, setDb] = useState(_fc26Cache);
+  const [loading, setLoading] = useState(!_fc26Cache);
+  useEffect(() => { if (!_fc26Cache) { loadFC26().then(d => { setDb(d); setLoading(false); }); } }, []);
+  return { db, loading };
+}
+
+// Search players in FC26 database
+function searchFC26Players(db, query, limit = 15) {
+  if (!db || !query || query.length < 2) return [];
+  const q = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return db.p.filter(p => {
+    const name = p.n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return name.includes(q);
+  }).slice(0, limit);
+}
+
+// Search teams in FC26 database
+function searchFC26Teams(db, query, limit = 10) {
+  if (!db || !query || query.length < 2) return [];
+  const q = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return db.t.filter(t => {
+    const name = t.n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return name.includes(q);
+  }).slice(0, limit);
+}
+
+// Get team players from FC26 database
+function getFC26TeamPlayers(db, teamName) {
+  if (!db || !teamName) return [];
+  const team = db.t.find(t => t.n === teamName);
+  if (!team) return [];
+  return team.ps.map(idx => db.p[idx]).filter(Boolean);
+}
+
+// Convert FC26 player to Kronex player format
+function fc26ToKronex(p) {
+  return {
+    id: genId(),
+    name: p.n,
+    overall: p.o,
+    potential: p.p,
+    position: p.ps,
+    age: p.a,
+    nationality: p.nt,
+    foot: p.f === 'E' ? 'Esquerdo' : p.f === 'A' ? 'Ambos' : 'Direito',
+    shirtNumber: p.k || 0,
+    goals: 0, assists: 0, matchesPlayed: 0, avgRating: 0, motm: 0,
+    notes: '', overallHistory: [],
+  };
+}
+
+// ─── PlayerSearch component (autocomplete from FC26 db) ───
+function PlayerSearch({ onSelect, placeholder }) {
+  const { db, loading } = useFC26();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (query.length >= 2 && db) {
+      setResults(searchFC26Players(db, query));
+      setOpen(true);
+    } else { setResults([]); setOpen(false); }
+  }, [query, db]);
+
+  // Close on click outside
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <input
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder={loading ? "Carregando base FC26..." : (placeholder || "Buscar jogador do FC 26...")}
+        disabled={loading && !db}
+        style={{ width: "100%", paddingRight: 36 }}
+      />
+      {loading && !db && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--text3)" }}>...</div>}
+      {!loading && db && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 9, color: "var(--accent)", fontWeight: 600 }}>FC26</div>}
+      {open && results.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "0 0 10px 10px", maxHeight: 220, overflowY: "auto", zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+          {results.map((p, i) => (
+            <div key={i} onClick={() => { onSelect(p); setQuery(""); setOpen(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid var(--border)", transition: "background .1s", fontSize: 13 }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--bg3)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <span style={{ width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, fontFamily: "'Outfit'", border: `2px solid ${ratingColor(p.o)}`, color: ratingColor(p.o), background: ratingColor(p.o) + "12", flexShrink: 0 }}>{p.o}</span>
+              <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <div style={{ fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.n}</div>
+                <div style={{ fontSize: 10, color: "var(--text3)" }}>{p.ps} · {p.a} anos · {p.nt}</div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 11, color: "var(--text2)", fontWeight: 500 }}>{p.t}</div>
+                {p.p > p.o && <div style={{ fontSize: 10, color: "var(--green)" }}>POT {p.p}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TeamSearch component (autocomplete for teams) ───
+function TeamSearch({ onSelect, value, onChange, placeholder }) {
+  const { db } = useFC26();
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (value && value.length >= 2 && db) {
+      setResults(searchFC26Teams(db, value));
+      setOpen(true);
+    } else { setResults([]); setOpen(false); }
+  }, [value, db]);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder || "Buscar time..."} />
+      {open && results.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "0 0 10px 10px", maxHeight: 180, overflowY: "auto", zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+          {results.map((t, i) => (
+            <div key={i} onClick={() => { onSelect(t); setOpen(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", cursor: "pointer", borderBottom: "1px solid var(--border)", transition: "background .1s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "var(--bg3)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{t.n}</div>
+                <div style={{ fontSize: 10, color: "var(--text3)" }}>{t.l} · {t.ps.length} jogadores</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Shared components ───
 function Modal({title,onClose,children}){return(<div className="mo" onClick={onClose}><div className="md" onClick={e=>e.stopPropagation()}><div className="mdt">{title}<button className="bi" onClick={onClose}>{I.x}</button></div>{children}</div></div>);}
 function Toast({message,onUndo}){if(!message)return null;return<div className="toast">{I.check} {message}{onUndo&&<button onClick={onUndo} style={{marginLeft:8,padding:"4px 12px",borderRadius:6,fontSize:12,fontWeight:700,border:"1px solid var(--accent)",background:"transparent",color:"var(--accent)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",transition:"all .2s"}}>Desfazer</button>}</div>;}
@@ -854,6 +1017,17 @@ return(<div>
 </select>
 </div>
 
+{/* FC26 Quick Search */}
+<div className="card" style={{padding:"12px 14px",marginBottom:12}}>
+<div style={{fontSize:11,color:"var(--text3)",marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>⚡ Busca rápida FC 26</div>
+<PlayerSearch placeholder="Digite o nome do jogador..." onSelect={(p)=>{
+const player=fc26ToKronex(p);
+setSeason(s=>({...s,players:[...s.players,player]}));
+toast(`${p.n} (${p.o} OVR) adicionado!`);
+}}/>
+<div style={{fontSize:10,color:"var(--text3)",marginTop:4}}>Selecione pra adicionar direto — depois edite o que quiser</div>
+</div>
+
 <div className="filter-scroll" style={{marginBottom:16}}>
 <button className={`btn ${filterPos==="Todos"?"bp":"bg"} bs`} onClick={()=>setFilterPos("Todos")}>Todos</button>
 {config.positions.map(p=><button key={p} className={`btn ${filterPos===p?"bp":"bg"} bs`} onClick={()=>setFilterPos(p)}>{p}</button>)}
@@ -1301,7 +1475,7 @@ function SettingsPage({data,setData,toast,goTo}){
 const[saveModal,setSaveModal]=useState(false);
 const[seasonModal,setSeasonModal]=useState(false);
 const[saveForm,setSaveForm]=useState({name:"Nova Carreira",gameVersion:GAME_VERSIONS[0],difficulty:DIFFICULTIES[3],managerName:"",managerNationality:""});
-const[seasonForm,setSeasonForm]=useState({teamName:"",teamBadgeEmoji:"⚽",league:"",year:"2025/26",copySquad:true});
+const[seasonForm,setSeasonForm]=useState({teamName:"",teamBadgeEmoji:"⚽",league:"",year:"2025/26",copySquad:true,importTeam:"",importFC26:false});
 const[editSave,setEditSave]=useState(null);
 const[editSeason,setEditSeason]=useState(null);
 
@@ -1314,11 +1488,11 @@ const sv={...DEFAULT_SAVE,...saveForm,id:genId(),createdAt:today(),seasons:[]};
 setData(d=>({...d,saves:[...d.saves,sv],activeSaveId:sv.id}));
 toast("Save criado!");setSaveModal(false);};
 
-const createSeason=()=>{
+const createSeason=async()=>{
 if(!seasonForm.teamName)return;
 const newNum=(activeSave?.seasons.length||0)+1;
 let players=[];
-// Copy squad from last season if same team and option is checked
+// Option 1: Copy from previous season
 if(seasonForm.copySquad&&lastSeason&&lastSeason.players.length>0){
 players=lastSeason.players.map(p=>({
 ...p,
@@ -1327,6 +1501,14 @@ age:(p.age||0)+1,
 goals:0,assists:0,matchesPlayed:0,avgRating:0,motm:0,
 overallHistory:[...(p.overallHistory||[]),{season:newNum,overall:p.overall||0}],
 }));
+}
+// Option 2: Import from FC26 database
+else if(seasonForm.importFC26&&seasonForm.importTeam){
+const db=await loadFC26();
+if(db){
+const teamPlayers=getFC26TeamPlayers(db,seasonForm.importTeam);
+players=teamPlayers.map(p=>fc26ToKronex(p));
+}
 }
 const sn={...DEFAULT_SEASON,teamName:seasonForm.teamName,teamBadgeEmoji:seasonForm.teamBadgeEmoji,league:seasonForm.league,year:seasonForm.year,id:genId(),number:newNum,players};
 setData(d=>({...d,saves:d.saves.map(s=>s.id===d.activeSaveId?{...s,seasons:[...s.seasons,sn],activeSeasonId:sn.id}:s)}));
@@ -1384,7 +1566,7 @@ return(<div>
 </div>}
 <button className="btn bp" onClick={()=>{
 const last=activeSave.seasons[activeSave.seasons.length-1];
-setSeasonForm({teamName:last?.teamName||"",teamBadgeEmoji:last?.teamBadgeEmoji||"⚽",league:last?.league||"",year:"",copySquad:!!last?.players?.length});
+setSeasonForm({teamName:last?.teamName||"",teamBadgeEmoji:last?.teamBadgeEmoji||"⚽",league:last?.league||"",year:"",copySquad:!!last?.players?.length,importTeam:"",importFC26:false});
 setSeasonModal(true);
 }}>{I.plus} Nova Temporada</button>
 {activeSave.seasons.length>0&&<p style={{fontSize:12,color:"var(--text3)",marginTop:8}}>Dica: Ao trocar de time, desmarque "Copiar elenco". Ao continuar com o mesmo time, o elenco é copiado com idades +1.</p>}
@@ -1437,7 +1619,12 @@ setSeasonModal(true);
 
 {/* Season modal */}
 {seasonModal&&<Modal title="Nova Temporada" onClose={()=>setSeasonModal(false)}>
-<div className="fr"><div className="fg" style={{flex:2}}><label className="fl">Time</label><input value={seasonForm.teamName} onChange={e=>setSeasonForm({...seasonForm,teamName:e.target.value})} autoFocus placeholder="Ex: Manchester City"/></div>
+<div className="fr"><div className="fg" style={{flex:2}}><label className="fl">Time</label>
+<TeamSearch value={seasonForm.teamName} onChange={v=>setSeasonForm({...seasonForm,teamName:v})} placeholder="Ex: Manchester City" onSelect={(t)=>{
+setSeasonForm(f=>({...f,teamName:t.n,league:t.l,importTeam:t.n}));
+}}/>
+{seasonForm.importTeam&&<div style={{fontSize:11,color:"var(--accent)",marginTop:4}}>✓ Time encontrado na base FC 26 — elenco será importado</div>}
+</div>
 <div className="fg" style={{maxWidth:80}}><label className="fl">Escudo</label>
 <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
 {BADGE_EMOJIS.slice(0,8).map(e=><div key={e} className={`form-badge ${seasonForm.teamBadgeEmoji===e?"sel":""}`} style={{width:32,height:32,fontSize:16,borderRadius:8}} onClick={()=>setSeasonForm({...seasonForm,teamBadgeEmoji:e})}>{e}</div>)}
@@ -1450,9 +1637,9 @@ setSeasonModal(true);
 <div style={{fontSize:12,color:"var(--text3)",marginBottom:8}}>Mais emojis de escudo:</div>
 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>{BADGE_EMOJIS.map(e=><div key={e} className={`form-badge ${seasonForm.teamBadgeEmoji===e?"sel":""}`} style={{width:36,height:36,fontSize:18}} onClick={()=>setSeasonForm({...seasonForm,teamBadgeEmoji:e})}>{e}</div>)}</div>
 
-{/* Copy Squad Toggle */}
-{lastSeason&&lastSeason.players.length>0&&<div style={{borderTop:"1px solid var(--border)",paddingTop:12,marginBottom:12}}>
-<div onClick={()=>setSeasonForm({...seasonForm,copySquad:!seasonForm.copySquad})} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 0"}}>
+{/* Copy Squad Toggle — from previous season OR FC26 database */}
+{(lastSeason?.players?.length>0||seasonForm.importTeam)&&<div style={{borderTop:"1px solid var(--border)",paddingTop:12,marginBottom:12}}>
+{lastSeason?.players?.length>0&&<div onClick={()=>setSeasonForm({...seasonForm,copySquad:!seasonForm.copySquad,importFC26:false})} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 0"}}>
 <div style={{width:40,height:22,borderRadius:11,background:seasonForm.copySquad?"var(--accent)":"var(--bg4)",transition:"all .2s",position:"relative",flexShrink:0}}>
 <div style={{width:18,height:18,borderRadius:9,background:"#fff",position:"absolute",top:2,left:seasonForm.copySquad?20:2,transition:"all .2s",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}/>
 </div>
@@ -1460,7 +1647,16 @@ setSeasonModal(true);
 <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>Copiar elenco da temporada anterior</div>
 <div style={{fontSize:11,color:"var(--text3)"}}>{lastSeason.players.length} jogadores · idades +1 · stats zerados</div>
 </div>
+</div>}
+{seasonForm.importTeam&&<div onClick={()=>setSeasonForm({...seasonForm,importFC26:!seasonForm.importFC26,copySquad:false})} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 0"}}>
+<div style={{width:40,height:22,borderRadius:11,background:seasonForm.importFC26?"var(--accent)":"var(--bg4)",transition:"all .2s",position:"relative",flexShrink:0}}>
+<div style={{width:18,height:18,borderRadius:9,background:"#fff",position:"absolute",top:2,left:seasonForm.importFC26?20:2,transition:"all .2s",boxShadow:"0 1px 4px rgba(0,0,0,.3)"}}/>
 </div>
+<div style={{flex:1}}>
+<div style={{fontSize:13,fontWeight:600,color:"var(--accent)"}}>⚡ Importar elenco do FC 26</div>
+<div style={{fontSize:11,color:"var(--text3)"}}>Importa elenco completo de {seasonForm.importTeam} da base de dados</div>
+</div>
+</div>}
 </div>}
 
 <div className="ma"><button className="btn bg" onClick={()=>setSeasonModal(false)}>Cancelar</button><button className="btn bp" onClick={createSeason}>Criar Temporada</button></div>
