@@ -1021,6 +1021,8 @@ const[sortBy,setSortBy]=useState("overall");
 const[filterPos,setFilterPos]=useState("Todos");
 const[compareIds,setCompareIds]=useState([]);
 const[showCompare,setShowCompare]=useState(false);
+const[manageMode,setManageMode]=useState(false);
+const[selectedIds,setSelectedIds]=useState(new Set());
 
 if(!season) return <EmptyState icon="👕" title="Sem temporada ativa" sub="Crie uma temporada primeiro"/>;
 
@@ -1031,8 +1033,11 @@ if(modal==="edit"){setSeason(s=>({...s,players:s.players.map(p=>p.id===form.id?p
 else{setSeason(s=>({...s,players:[...s.players,player]}));toast(`${form.name} adicionado!`);}
 setModal(false);};
 
-const editP=(p)=>{setForm({...p});setModal("edit");};
+const editP=(p)=>{if(manageMode)return;setForm({...p});setModal("edit");};
 const rem=(id)=>{setSeason(s=>({...s,players:s.players.filter(p=>p.id!==id)}));toast("Jogador removido");};
+const toggleSelect=(id)=>{setSelectedIds(prev=>{const n=new Set(prev);if(n.has(id))n.delete(id);else n.add(id);return n;});};
+const removeSelected=()=>{if(selectedIds.size===0)return;setSeason(s=>({...s,players:s.players.filter(p=>!selectedIds.has(p.id))}));toast(`${selectedIds.size} jogador(es) removido(s)`);setSelectedIds(new Set());};
+const selectAll=()=>{const allIds=new Set(sorted.map(p=>p.id));setSelectedIds(prev=>prev.size===allIds.size?new Set():allIds);};
 
 const positions=[...new Set(season.players.map(p=>p.position))];
 let sorted=[...season.players];
@@ -1058,12 +1063,22 @@ return(<div>
 <div className="ph"><div className="pt">👕 Elenco</div><div className="ps">{season.players.length} jogadores · OVR médio {season.players.length>0?Math.round(season.players.reduce((a,p)=>a+(p.overall||0),0)/season.players.length):0}</div></div>
 
 <div className="tb">
-<button className="btn bp" onClick={()=>{setForm({name:"",position:config.positions[0],overall:"",potential:"",age:"",altPositions:[],goals:0,assists:0,matchesPlayed:0,avgRating:0,motm:0,shirtNumber:"",nationality:"",foot:"Direito",notes:"",overallHistory:[]});setModal(true);}}>{I.plus} Adicionar Jogador</button>
-{compareIds.length===2&&<button className="btn bg" onClick={()=>setShowCompare(true)}>{I.compare} Comparar ({compareIds.length})</button>}
-<select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{maxWidth:160}}>
-<option value="overall">Ordenar: Overall</option><option value="potential">Ordenar: Potencial</option><option value="goals">Ordenar: Gols</option><option value="assists">Ordenar: Assists</option><option value="rating">Ordenar: Nota</option><option value="age">Ordenar: Idade</option><option value="name">Ordenar: Nome</option>
-</select>
+<button className="btn bp" onClick={()=>{setForm({name:"",position:config.positions[0],overall:"",potential:"",age:"",altPositions:[],goals:0,assists:0,matchesPlayed:0,avgRating:0,motm:0,shirtNumber:"",nationality:"",foot:"Direito",notes:"",overallHistory:[]});setModal(true);}}>{I.plus} Adicionar</button>
+<button className={`btn ${manageMode?"bp":"bg"}`} onClick={()=>{setManageMode(!manageMode);setSelectedIds(new Set());}}>{manageMode?"✓ Sair":"✏️ Gerenciar"}</button>
+{compareIds.length===2&&!manageMode&&<button className="btn bg" onClick={()=>setShowCompare(true)}>{I.compare} Comparar</button>}
+{!manageMode&&<select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{maxWidth:140}}>
+<option value="overall">OVR</option><option value="potential">Potencial</option><option value="goals">Gols</option><option value="assists">Assists</option><option value="rating">Nota</option><option value="age">Idade</option><option value="name">Nome</option>
+</select>}
 </div>
+
+{/* Manage mode toolbar */}
+{manageMode&&<div className="card" style={{padding:"10px 14px",marginBottom:12,background:"var(--red-bg)",borderColor:"var(--red)"}}>
+<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+<span style={{fontSize:12,color:"var(--red)",fontWeight:600}}>{selectedIds.size} selecionado(s)</span>
+<button className="btn bg bs" onClick={selectAll}>{selectedIds.size===sorted.length?"Desmarcar todos":"Selecionar todos"}</button>
+{selectedIds.size>0&&<button className="btn bd bs" onClick={removeSelected}>🗑️ Remover selecionados</button>}
+</div>
+</div>}
 
 {/* FC26 Quick Search */}
 <div className="card" style={{padding:"12px 14px",marginBottom:12}}>
@@ -1084,7 +1099,10 @@ toast(`${p.n} (${p.o} OVR) adicionado!`);
 {sorted.length===0?<EmptyState icon="👕" title="Nenhum jogador" sub="Adicione jogadores ao seu elenco"/>:
 <div className="card" style={{padding:0,overflow:"hidden"}}>
 {sorted.map(p=>(
-<div key={p.id} className="player-row" onClick={()=>editP(p)}>
+<div key={p.id} className="player-row" onClick={()=>manageMode?toggleSelect(p.id):editP(p)} style={{background:selectedIds.has(p.id)?"var(--red-bg)":"transparent"}}>
+{manageMode&&<div style={{width:22,height:22,borderRadius:6,border:selectedIds.has(p.id)?"none":"2px solid var(--border2)",background:selectedIds.has(p.id)?"var(--red)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+{selectedIds.has(p.id)&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+</div>}
 <div style={{position:"relative"}}>
 <OvrBadge value={p.overall}/>
 {compareIds.includes(p.id)&&<div style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:7,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#000"}}>✓</div>}
@@ -1102,10 +1120,11 @@ toast(`${p.n} (${p.o} OVR) adicionado!`);
 </div>
 </div>
 <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
-{(p.goals||0)>0&&<span style={{fontSize:11,color:"var(--text2)"}}>⚽{p.goals}</span>}
-{(p.assists||0)>0&&<span style={{fontSize:11,color:"var(--text2)"}}>🅰️{p.assists}</span>}
-{(p.avgRating||0)>0&&<span style={{fontSize:11,color:"var(--yellow)"}}>⭐{(p.avgRating).toFixed(1)}</span>}
-<button className="bi" style={{padding:3}} onClick={e=>{e.stopPropagation();toggleCompare(p.id);}} title="Comparar">{I.compare}</button>
+{!manageMode&&(p.goals||0)>0&&<span style={{fontSize:11,color:"var(--text2)"}}>⚽{p.goals}</span>}
+{!manageMode&&(p.assists||0)>0&&<span style={{fontSize:11,color:"var(--text2)"}}>🅰️{p.assists}</span>}
+{!manageMode&&(p.avgRating||0)>0&&<span style={{fontSize:11,color:"var(--yellow)"}}>⭐{(p.avgRating).toFixed(1)}</span>}
+{!manageMode&&<button className="bi" style={{padding:3}} onClick={e=>{e.stopPropagation();toggleCompare(p.id);}} title="Comparar">{I.compare}</button>}
+{manageMode&&<button className="bi" style={{padding:3}} onClick={e=>{e.stopPropagation();rem(p.id);}} title="Remover">{I.trash}</button>}
 </div>
 </div>))}
 </div>}
