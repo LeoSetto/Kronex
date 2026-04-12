@@ -328,14 +328,24 @@ input,select,textarea{font-size:16px;padding:10px 10px;max-width:100%;box-sizing
 @media(min-width:769px){.m-only{display:none}.d-only{display:block}}
 `;
 
-// ─── FC26 Database (lazy loaded from /data/fc26.json) ───
+// ─── FC26 Database (lazy loaded from /data/fc26-*.json) ───
 let _fc26Cache = null;
 async function loadFC26() {
   if (_fc26Cache) return _fc26Cache;
   try {
-    const res = await fetch('/data/fc26.json');
-    if (!res.ok) return null;
-    _fc26Cache = await res.json();
+    // Load meta (teams + chunk count)
+    const metaRes = await fetch('/data/fc26-meta.json');
+    if (!metaRes.ok) return null;
+    const meta = await metaRes.json();
+    const numChunks = meta.chunks || 6;
+    // Load all player chunks in parallel
+    const chunkPromises = [];
+    for (let i = 1; i <= numChunks; i++) {
+      chunkPromises.push(fetch(`/data/fc26-p${i}.json`).then(r => r.ok ? r.json() : []));
+    }
+    const chunks = await Promise.all(chunkPromises);
+    const allPlayers = chunks.flat();
+    _fc26Cache = { v: meta.v, d: meta.d, p: allPlayers, t: meta.t };
     return _fc26Cache;
   } catch { return null; }
 }
